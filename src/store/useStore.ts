@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 export type Role = 'admin' | 'agent';
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
-export type BookingType = 'flight' | 'hotel' | 'visa' | 'tour';
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'documents_received' | 'processing' | 'ready' | 'delivered';
+export type BookingType = 'flight' | 'hotel' | 'visa' | 'tour' | 'passport';
 export type TransactionType = 'income' | 'expense' | 'operating_expense';
 
 export interface User {
@@ -43,6 +43,9 @@ export interface Booking {
   selling_price: number;
   status: BookingStatus;
   created_at?: string;
+  national_id?: string;
+  receipt_number?: string;
+  expected_date?: string;
 }
 
 export interface Transaction {

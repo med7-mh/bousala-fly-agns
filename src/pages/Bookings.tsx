@@ -8,7 +8,8 @@ export default function Bookings() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Real-time profit calculation state
+  // Form specific state
+  const [selectedType, setSelectedType] = useState<BookingType>('flight');
   const [costPrice, setCostPrice] = useState<number>(0);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
 
@@ -20,37 +21,78 @@ export default function Bookings() {
   const handleAddBooking = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const type = formData.get('type') as BookingType;
     const pnr = formData.get('pnr') as string;
     const supplier_id = formData.get('supplier_id') as string;
     const desc = formData.get('description') as string;
+    const national_id = formData.get('national_id') as string;
+    const receipt_number = formData.get('receipt_number') as string;
+    const expected_date = formData.get('expected_date') as string;
     
-    // Find supplier name for old description format if needed, but not strictly necessary now.
-    // Let's just keep PNR and desc.
     const parts = [];
-    if (pnr) parts.push(`PNR: ${pnr}`);
-    if (desc) parts.push(`التفاصيل: ${desc}`);
+    if (type === 'passport') {
+      if (national_id) parts.push(`الرقم الوطني: ${national_id}`);
+      if (receipt_number) parts.push(`رقم الإيصال: ${receipt_number}`);
+      if (expected_date) parts.push(`موعد الاستلام: ${expected_date}`);
+      if (desc) parts.push(`التفاصيل: ${desc}`);
+    } else {
+      if (pnr) parts.push(`PNR: ${pnr}`);
+      if (desc) parts.push(`التفاصيل: ${desc}`);
+    }
     
     const finalDescription = parts.join(' | ') || 'بدون وصف';
 
     addBooking({
       customer_id: formData.get('customer_id') as string,
       supplier_id: supplier_id || undefined,
-      type: formData.get('type') as BookingType,
+      type: type,
       description: finalDescription,
       cost_price: Number(formData.get('cost_price')),
       selling_price: Number(formData.get('selling_price')),
       status: formData.get('status') as BookingStatus,
+      national_id: national_id || undefined,
+      receipt_number: receipt_number || undefined,
+      expected_date: expected_date || undefined
     });
     setIsModalOpen(false);
     setCostPrice(0);
     setSellingPrice(0);
+    setSelectedType('flight'); // default back
   };
 
   const typeLabels: Record<BookingType, string> = {
     flight: 'طيران',
     hotel: 'فندق',
     visa: 'تأشيرة',
-    tour: 'جولة سياحية'
+    tour: 'جولة سياحية',
+    passport: 'جواز سفر'
+  };
+
+  const statusLabels: Record<BookingStatus, string> = {
+    pending: 'معلق',
+    confirmed: 'مؤكد',
+    cancelled: 'ملغي',
+    documents_received: 'استلام المستندات',
+    processing: 'قيد المعالجة',
+    ready: 'جاهز للاستلام',
+    delivered: 'تم التسليم'
+  };
+
+  const getStatusColor = (status: BookingStatus) => {
+    switch (status) {
+      case 'confirmed':
+      case 'delivered':
+        return 'bg-emerald-50 text-emerald-700';
+      case 'pending':
+      case 'documents_received':
+      case 'processing':
+        return 'bg-amber-50 text-amber-700';
+      case 'ready':
+        return 'bg-blue-50 text-blue-700';
+      case 'cancelled':
+      default:
+        return 'bg-red-50 text-red-700';
+    }
   };
 
   return (
@@ -116,12 +158,8 @@ export default function Bookings() {
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 font-bold whitespace-nowrap">{formatCurrency(booking.selling_price)}</td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-emerald-600 font-bold whitespace-nowrap">{formatCurrency(profit)}</td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded text-[11px] font-semibold ${
-                        booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700' :
-                        booking.status === 'pending' ? 'bg-amber-50 text-amber-700' :
-                        'bg-red-50 text-red-700'
-                      }`}>
-                        {booking.status === 'confirmed' ? 'مؤكد' : booking.status === 'pending' ? 'معلق' : 'ملغي'}
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-semibold ${getStatusColor(booking.status)}`}>
+                        {statusLabels[booking.status] || booking.status}
                       </span>
                     </td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 whitespace-nowrap">
@@ -130,9 +168,21 @@ export default function Bookings() {
                         onChange={(e) => updateBookingStatus(booking.id, e.target.value as BookingStatus)}
                         className="text-sm border border-slate-200 rounded p-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                       >
-                        <option value="pending">معلق</option>
-                        <option value="confirmed">مؤكد</option>
-                        <option value="cancelled">ملغي</option>
+                        {booking.type === 'passport' ? (
+                          <>
+                            <option value="documents_received">استلام المستندات</option>
+                            <option value="processing">قيد المعالجة</option>
+                            <option value="ready">جاهز للاستلام</option>
+                            <option value="delivered">تم التسليم</option>
+                            <option value="cancelled">ملغي</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="pending">معلق</option>
+                            <option value="confirmed">مؤكد</option>
+                            <option value="cancelled">ملغي</option>
+                          </>
+                        )}
                       </select>
                     </td>
                   </tr>
@@ -159,33 +209,66 @@ export default function Bookings() {
                 </select>
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع الحجز</label>
-                <select required name="type" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع العملية/الحجز</label>
+                <select 
+                  required 
+                  name="type" 
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value as BookingType)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+                >
                   <option value="flight">طيران</option>
                   <option value="hotel">فندق</option>
                   <option value="visa">تأشيرة</option>
                   <option value="tour">جولة سياحية</option>
+                  <option value="passport">جواز سفر</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">تفاصيل الرحلة/الوصف</label>
-                <input required name="description" type="text" placeholder="مثال: رحلة نواكشوط - دكار" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الحجز (PNR)</label>
-                  <input name="pnr" type="text" placeholder="اختياري" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">المورد (اختياري)</label>
-                  <select name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
-                    <option value="">لا يوجد...</option>
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              
+              {selectedType === 'passport' ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">الرقم الوطني (NNI)</label>
+                      <input name="national_id" type="text" placeholder="مثال: 1234567890" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
+                      <input name="receipt_number" type="text" placeholder="رقم المعاملة في الإدارة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">موعد الاستلام المتوقع</label>
+                    <input name="expected_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات/وصف إضافي</label>
+                    <input name="description" type="text" placeholder="مثال: استخراج لأول مرة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">تفاصيل الرحلة/الوصف</label>
+                    <input required name="description" type="text" placeholder="مثال: رحلة نواكشوط - دكار" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الحجز (PNR)</label>
+                      <input name="pnr" type="text" placeholder="اختياري" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">المورد (اختياري)</label>
+                      <select name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                        <option value="">لا يوجد...</option>
+                        {suppliers.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[13px] font-semibold text-slate-600 mb-1">التكلفة (أوقية)</label>
@@ -224,9 +307,21 @@ export default function Bookings() {
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">الحالة</label>
                 <select required name="status" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
-                  <option value="pending">معلق</option>
-                  <option value="confirmed">مؤكد</option>
-                  <option value="cancelled">ملغي</option>
+                  {selectedType === 'passport' ? (
+                    <>
+                      <option value="documents_received">استلام المستندات</option>
+                      <option value="processing">قيد المعالجة (في الإدارة)</option>
+                      <option value="ready">جاهز للاستلام</option>
+                      <option value="delivered">تم التسليم</option>
+                      <option value="cancelled">ملغي</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="pending">معلق</option>
+                      <option value="confirmed">مؤكد</option>
+                      <option value="cancelled">ملغي</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div className="flex justify-end gap-3 mt-6">
