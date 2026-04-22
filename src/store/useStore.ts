@@ -78,7 +78,7 @@ interface AppState {
   // Mutations
   addCustomer: (customer: Omit<Customer, 'id' | 'agency_id'>) => Promise<void>;
   addSupplier: (supplier: Omit<Supplier, 'id' | 'agency_id'>) => Promise<void>;
-  addBooking: (booking: Omit<Booking, 'id' | 'agency_id' | 'created_at'>) => Promise<void>;
+  addBooking: (booking: Omit<Booking, 'id' | 'agency_id' | 'created_at'>) => Promise<Booking | null>;
   updateBookingStatus: (id: string, status: BookingStatus) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'agency_id'>) => Promise<void>;
 }
@@ -177,7 +177,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   addBooking: async (booking) => {
     const { user } = get();
-    if (!user) return;
+    if (!user) return null;
 
     const toastId = toast.loading('جاري إضافة الحجز...');
 
@@ -190,9 +190,11 @@ export const useStore = create<AppState>((set, get) => ({
     if (!error && data) {
       set((state) => ({ bookings: [data, ...state.bookings] }));
       toast.success('تمت إضافة الحجز بنجاح', { id: toastId });
+      return data;
     } else {
       console.error(error);
       toast.error('حدث خطأ أثناء إضافة الحجز', { id: toastId });
+      return null;
     }
   },
 

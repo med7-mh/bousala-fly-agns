@@ -4,7 +4,7 @@ import { formatCurrency } from '../lib/utils';
 import { Plus, Search, Filter } from 'lucide-react';
 
 export default function Bookings() {
-  const { bookings, customers, suppliers, addBooking, updateBookingStatus } = useStore();
+  const { bookings, customers, suppliers, addBooking, updateBookingStatus, addTransaction } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -12,13 +12,14 @@ export default function Bookings() {
   const [selectedType, setSelectedType] = useState<BookingType>('flight');
   const [costPrice, setCostPrice] = useState<number>(0);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
+  const [advancePayment, setAdvancePayment] = useState<number>(0);
 
   const filteredBookings = bookings.filter(b => {
     const customer = customers.find(c => c.id === b.customer_id);
     return customer?.name.includes(searchTerm) || b.description.includes(searchTerm);
   });
 
-  const handleAddBooking = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const type = formData.get('type') as BookingType;
@@ -42,7 +43,7 @@ export default function Bookings() {
     
     const finalDescription = parts.join(' | ') || 'بدون وصف';
 
-    addBooking({
+    const newBooking = await addBooking({
       customer_id: formData.get('customer_id') as string,
       supplier_id: supplier_id || undefined,
       type: type,
@@ -54,9 +55,23 @@ export default function Bookings() {
       receipt_number: receipt_number || undefined,
       expected_date: expected_date || undefined
     });
+
+    // Handle Quick Payment Recording
+    if (newBooking && advancePayment > 0) {
+      await addTransaction({
+        booking_id: newBooking.id,
+        type: 'income',
+        amount: advancePayment,
+        description: `دفعة مقدمة - ${type === 'passport' ? 'جواز سفر' : 'حجز'}`,
+        payment_method: 'cash',
+        date: new Date().toISOString()
+      });
+    }
+
     setIsModalOpen(false);
     setCostPrice(0);
     setSellingPrice(0);
+    setAdvancePayment(0);
     setSelectedType('flight'); // default back
   };
 
@@ -304,6 +319,21 @@ export default function Bookings() {
                   <span>{formatCurrency(sellingPrice - costPrice)}</span>
                 </div>
               )}
+              
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">الدفعة المقدمة (مقبوضات الكاشير)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="1" 
+                  value={advancePayment || ''}
+                  onChange={(e) => setAdvancePayment(Number(e.target.value))}
+                  placeholder="المبلغ المدفوع الآن (اختياري)"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white" 
+                />
+                <p className="text-[11px] text-slate-500 mt-1">سيتم إنشاء سند قبض تلقائياً في يومية الكاشير بهذا المبلغ.</p>
+              </div>
+
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">الحالة</label>
                 <select required name="status" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">

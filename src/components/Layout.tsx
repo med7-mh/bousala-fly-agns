@@ -31,10 +31,10 @@ export default function Layout() {
   }
 
   const primaryNav = [
-    { name: 'الرئيسية', href: '/', icon: LayoutDashboard },
+    { name: 'اليومية', href: '/', icon: LayoutDashboard },
     { name: 'الحجوزات', href: '/bookings', icon: Briefcase },
     { name: 'العملاء', href: '/customers', icon: Users },
-    { name: 'الكاشير', href: '/transactions', icon: Receipt },
+    { name: 'سجل الكاشير', href: '/transactions', icon: Receipt },
   ];
 
   const secondaryNav = [
