@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
-import { useStore, TransactionType } from '../store/useStore';
-import { formatCurrency } from '../lib/utils';
-import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useStore, TransactionType, Transaction } from '../store/useStore';
+import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
+import { t } from '../lib/translations';
+import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Wallet, Landmark, Smartphone, CreditCard, Banknote, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Transactions() {
-  const { transactions, bookings, customers, suppliers, addTransaction } = useStore();
+  const { transactions, bookings, customers, suppliers, addTransaction, updateTransaction, deleteTransaction, language } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+
   const [txType, setTxType] = useState<TransactionType>('income');
+
+  useEffect(() => {
+    if (editingTransaction) {
+      setTxType(editingTransaction.type);
+    } else {
+      setTxType('income');
+    }
+  }, [editingTransaction]);
 
   const filteredTransactions = transactions.filter(t => 
     t.description.includes(searchTerm)
@@ -18,32 +31,72 @@ export default function Transactions() {
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' || t.type === 'operating_expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpense;
 
-  // Adding payment method to the interface inside useStore already exists.
+  const paymentMethodsList = [
+    { id: 'cash', label: language === 'ar' ? 'نقدي' : 'Cash', icon: Banknote, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { id: 'bankily', label: language === 'ar' ? 'بنكيلي' : 'Bankily', icon: Smartphone, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { id: 'masrivi', label: language === 'ar' ? 'مصرفي' : 'Masrivi', icon: Landmark, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { id: 'sedad', label: language === 'ar' ? 'سداد' : 'Sedad', icon: CreditCard, color: 'text-orange-500', bg: 'bg-orange-50' }
+  ];
+
+  const getBalanceByMethod = (method: string) => {
+    const methodTxs = transactions.filter(t => t.payment_method === method || (!t.payment_method && method === 'cash'));
+    const income = methodTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const expense = methodTxs.filter(t => t.type === 'expense' || t.type === 'operating_expense').reduce((sum, t) => sum + t.amount, 0);
+    return income - expense;
+  };
+
+  const handleOpenAddModal = () => {
+    setEditingTransaction(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (t: Transaction) => {
+    setEditingTransaction(t);
+    setIsModalOpen(true);
+  };
+
   const handleAddTransaction = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const bookingId = formData.get('booking_id') as string;
     const supplierId = formData.get('supplier_id') as string;
 
-    addTransaction({
+    const txData: Partial<Transaction> = {
       type: txType,
       amount: Number(formData.get('amount')),
       description: formData.get('description') as string,
       booking_id: bookingId === "" ? undefined : bookingId,
       supplier_id: supplierId === "" ? undefined : supplierId,
       payment_method: formData.get('payment_method') as string,
-      date: new Date().toISOString().split('T')[0],
-    });
+    };
+
+    if (editingTransaction) {
+      updateTransaction(editingTransaction.id, txData);
+    } else {
+      addTransaction({
+        ...txData,
+        date: new Date().toISOString().split('T')[0],
+      } as Omit<Transaction, 'id' | 'agency_id'>);
+    }
+    
     setIsModalOpen(false);
+    setEditingTransaction(null);
+  };
+
+  const handleDelete = () => {
+    if (transactionToDelete) {
+      deleteTransaction(transactionToDelete.id);
+      setTransactionToDelete(null);
+    }
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Financial Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-2">
@@ -81,6 +134,28 @@ export default function Transactions() {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {paymentMethodsList.map(method => {
+          const methodBalance = getBalanceByMethod(method.id);
+          return (
+            <div key={method.id} className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-emerald-200 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${method.bg}`}>
+                  <method.icon className={`w-5 h-5 ${method.color}`} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-700">{method.label}</h3>
+              </div>
+              <div className="mt-2">
+                <p className={`text-lg font-bold ${methodBalance >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
+                  <span className="text-[11px] font-normal text-slate-400 ml-1">MRU</span>
+                  {formatCurrency(methodBalance)}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <div className="relative w-full sm:w-80">
@@ -99,7 +174,7 @@ export default function Transactions() {
           </button>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenAddModal}
           className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -144,25 +219,62 @@ export default function Transactions() {
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-700 whitespace-nowrap">
-                      {transaction.payment_method || 'نقدي (كاش)'}
+                      {transaction.payment_method === 'cash' ? 'نقدي (Cash)' :
+                       transaction.payment_method === 'bankily' ? 'بنكيلي (Bankily)' :
+                       transaction.payment_method === 'masrivi' ? 'مصرفي (Masrivi)' :
+                       transaction.payment_method === 'sedad' ? 'سداد (Sedad)' :
+                       transaction.payment_method === 'other' ? 'أخرى' :
+                       (transaction.payment_method || 'نقدي (Cash)')}
                     </td>
-                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 min-w-[150px]">{transaction.description}</td>
+                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 min-w-[150px]">
+                      {(() => {
+                        const { text, staffName } = parseDescriptionWithStaff(transaction.description);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span>{text}</span>
+                            {staffName && (
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] font-semibold text-slate-500 border border-slate-200">
+                                👤 {staffName}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-500 whitespace-nowrap">
-                      {booking ? (
-                        <div className="flex flex-col">
-                          <span className="text-slate-800 font-medium">{customer?.name}</span>
-                          <span className="text-[12px]" dir="ltr">#{booking.id.substring(0, 8).toUpperCase()}</span>
+                      <div className="flex items-center justify-between gap-4">
+                        {booking ? (
+                          <div className="flex flex-col">
+                            <span className="text-slate-800 font-medium">{customer?.name}</span>
+                            <span className="text-[12px]" dir="ltr">#{booking.id.substring(0, 8).toUpperCase()}</span>
+                          </div>
+                        ) : (
+                          <span>-</span>
+                        )}
+                        <div className="flex justify-end gap-1">
+                          <button 
+                            onClick={() => handleOpenEditModal(transaction)}
+                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors inline-block"
+                            title="تعديل العملية"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => setTransactionToDelete(transaction)}
+                            className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors inline-block"
+                            title="حذف العملية"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                      ) : (
-                        '-'
-                      )}
+                      </div>
                     </td>
                   </tr>
                 );
               })}
               {filteredTransactions.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-500">
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
                     لا توجد عمليات مالية
                   </td>
                 </tr>
@@ -172,11 +284,11 @@ export default function Transactions() {
         </div>
       </section>
 
-      {/* Add Transaction Modal */}
+      {/* Add/Edit Transaction Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">إضافة عملية مالية</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingTransaction ? 'تعديل العملية المالية' : 'إضافة عملية مالية'}</h3>
             <form onSubmit={handleAddTransaction} className="space-y-4">
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع العملية</label>
@@ -187,36 +299,36 @@ export default function Transactions() {
                     <span className="text-sm font-medium text-slate-800">مقبوضات</span>
                   </label>
                   <label className="flex items-center justify-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 has-[:checked]:border-red-500 has-[:checked]:bg-red-50">
-                    <input required type="radio" name="type" value="expense" checked={txType === 'expense'} onChange={(e) => setTxType(e.target.value as TransactionType)} className="hidden" />
+                    <input required type="radio" name="type" value="expense" checked={txType === 'expense' || txType === 'operating_expense'} onChange={(e) => setTxType('expense' as TransactionType)} className="hidden" />
                     <ArrowDownRight className="w-4 h-4 text-red-600" />
-                    <span className="text-sm font-medium text-slate-800">مدفوعات/للمورد</span>
+                    <span className="text-sm font-medium text-slate-800">مدفوعات</span>
                   </label>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[13px] font-semibold text-slate-600 mb-1">المبلغ (أوقية)</label>
-                  <input required name="amount" type="number" min="0" step="1" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                  <input defaultValue={editingTransaction?.amount} required name="amount" type="number" min="0" step="1" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-slate-600 mb-1">طريقة الدفع/الاستلام</label>
-                  <select name="payment_method" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
-                    <option value="نقدي (كاش)">نقدي (كاش)</option>
-                    <option value="بنكيلي (Bankily)">بنكيلي (Bankily)</option>
-                    <option value="سداد (Sadad)">سداد (Sadad)</option>
-                    <option value="مصرفي (Masrivi)">مصرفي (Masrivi)</option>
-                    <option value="تحويل بنكي">تحويل بنكي</option>
+                  <select defaultValue={editingTransaction?.payment_method || 'cash'} name="payment_method" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                    <option value="cash">نقدي (Cash)</option>
+                    <option value="bankily">بنكيلي (Bankily)</option>
+                    <option value="masrivi">مصرفي (Masrivi)</option>
+                    <option value="sedad">سداد (Sedad)</option>
+                    <option value="other">أخرى</option>
                   </select>
                 </div>
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">البيان/الوصف</label>
-                <input required name="description" type="text" placeholder="مثال: دفعة مقدمة لتذكرة ذهاب فقط" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                <input defaultValue={editingTransaction ? parseDescriptionWithStaff(editingTransaction.description).text : ''} required name="description" type="text" placeholder="مثال: دفعة مقدمة لتذكرة ذهاب فقط" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
-              {txType === 'expense' && (
+              {(txType === 'expense' || txType === 'operating_expense') && (
                 <div>
                   <label className="block text-[13px] font-semibold text-slate-600 mb-1">مرتبط بمورد (اختياري)</label>
-                  <select name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                  <select defaultValue={editingTransaction?.supplier_id} name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                     <option value="">بدون مورد...</option>
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -227,7 +339,7 @@ export default function Transactions() {
               {txType === 'income' && (
                 <div>
                   <label className="block text-[13px] font-semibold text-slate-600 mb-1">مرتبط بحجز (اختياري)</label>
-                  <select name="booking_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                  <select defaultValue={editingTransaction?.booking_id} name="booking_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                     <option value="">بدون حجز...</option>
                     {bookings.map(b => {
                       const customer = customers.find(c => c.id === b.customer_id);
@@ -245,10 +357,40 @@ export default function Transactions() {
                   إلغاء
                 </button>
                 <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  حفظ العملية
+                  {editingTransaction ? 'حفظ التعديلات' : 'حفظ العملية'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {transactionToDelete && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-[17px] font-bold">تأكيد الحذف</h3>
+            </div>
+            <p className="text-slate-600 text-sm mb-6">
+              هل أنت متأكد من حذف العملية <strong>{transactionToDelete.description}</strong>؟<br />
+              <span className="text-[12px] text-slate-500">هذا الإجراء لا يمكن التراجع عنه. قد يؤثر على حسابات العملاء والموردين.</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setTransactionToDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                حذف العملية
+              </button>
+            </div>
           </div>
         </div>
       )}

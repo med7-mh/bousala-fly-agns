@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useStore, Supplier } from '../store/useStore';
 import { formatCurrency } from '../lib/utils';
-import { Plus, Search, Mail, Phone, FileText, X, Building2 } from 'lucide-react';
+import { Plus, Search, Mail, Phone, FileText, X, Building2, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Suppliers() {
-  const { suppliers, bookings, transactions, addSupplier } = useStore();
+  const { suppliers, bookings, transactions, addSupplier, updateSupplier, deleteSupplier, language } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [statementSupplier, setStatementSupplier] = useState<Supplier | null>(null);
 
   const filteredSuppliers = suppliers.filter(s => 
@@ -15,20 +18,45 @@ export default function Suppliers() {
     s.email.includes(searchTerm)
   );
 
-  const handleAddSupplier = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleOpenAddModal = () => {
+    setEditingSupplier(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (supplier: Supplier) => {
+    setEditingSupplier(supplier);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    addSupplier({
+    const supplierData = {
       name: formData.get('name') as string,
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
       notes: formData.get('notes') as string,
-    });
+    };
+
+    if (editingSupplier) {
+      updateSupplier(editingSupplier.id, supplierData);
+    } else {
+      addSupplier(supplierData);
+    }
+    
     setIsModalOpen(false);
+    setEditingSupplier(null);
+  };
+
+  const handleDelete = () => {
+    if (supplierToDelete) {
+      deleteSupplier(supplierToDelete.id);
+      setSupplierToDelete(null);
+    }
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="relative w-full sm:max-w-md">
           <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -41,7 +69,7 @@ export default function Suppliers() {
           />
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenAddModal}
           className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -103,13 +131,29 @@ export default function Suppliers() {
                       </span>
                     </td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-center whitespace-nowrap">
-                      <button 
-                        onClick={() => setStatementSupplier(supplier)}
-                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
-                        title="كشف حساب مورد"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </button>
+                      <div className="flex justify-center gap-2">
+                        <button 
+                          onClick={() => setStatementSupplier(supplier)}
+                          className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
+                          title="كشف حساب مورد"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleOpenEditModal(supplier)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
+                          title="تعديل المورد"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => setSupplierToDelete(supplier)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
+                          title="حذف المورد"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -126,37 +170,67 @@ export default function Suppliers() {
         </div>
       </section>
 
-      {/* Add Supplier Modal */}
+      {/* Add/Edit Supplier Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">إضافة مورد جديد</h3>
-            <form onSubmit={handleAddSupplier} className="space-y-4">
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">اسم المورد / الشركة</label>
-                <input required name="name" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                <input defaultValue={editingSupplier?.name} required name="name" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم التواصل</label>
-                <input name="phone" type="tel" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
+                <input defaultValue={editingSupplier?.phone} name="phone" type="tel" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">البريد الإلكتروني</label>
-                <input name="email" type="email" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
+                <input defaultValue={editingSupplier?.email} name="email" type="email" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات</label>
-                <textarea name="notes" rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"></textarea>
+                <textarea defaultValue={editingSupplier?.notes} name="notes" rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"></textarea>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                   إلغاء
                 </button>
                 <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  حفظ المورد
+                  {editingSupplier ? 'حفظ التعديلات' : 'حفظ المورد'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {supplierToDelete && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-[17px] font-bold">تأكيد الحذف</h3>
+            </div>
+            <p className="text-slate-600 text-sm mb-6">
+              هل أنت متأكد من حذف المورد <strong>{supplierToDelete.name}</strong>؟<br />
+              <span className="text-[12px] text-slate-500">هذا الإجراء لا يمكن التراجع عنه.</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setSupplierToDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                حذف المورد
+              </button>
+            </div>
           </div>
         </div>
       )}

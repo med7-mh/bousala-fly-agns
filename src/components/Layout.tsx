@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import { t } from '../lib/translations';
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,13 +13,14 @@ import {
   Menu,
   Building2,
   ReceiptText,
-  X
+  X,
+  Globe,
+  UserCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function Layout() {
-  const user = useStore(state => state.user);
-  const logout = useStore(state => state.logout);
+  const { user, logout, language, setLanguage, staffMembers, activeStaff, setActiveStaff } = useStore();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -31,24 +33,27 @@ export default function Layout() {
   }
 
   const primaryNav = [
-    { name: 'اليومية', href: '/', icon: LayoutDashboard },
-    { name: 'الحجوزات', href: '/bookings', icon: Briefcase },
-    { name: 'العملاء', href: '/customers', icon: Users },
-    { name: 'سجل الكاشير', href: '/transactions', icon: Receipt },
+    { name: t('dashboard', language), href: '/', icon: LayoutDashboard },
+    { name: t('bookings', language), href: '/bookings', icon: Briefcase },
+    { name: t('customers', language), href: '/customers', icon: Users },
+    { name: t('cashier', language), href: '/transactions', icon: Receipt },
   ];
 
   const secondaryNav = [
-    { name: 'الموردين', href: '/suppliers', icon: Building2 },
-    { name: 'المصروفات', href: '/expenses', icon: ReceiptText },
-    ...(user.role === 'admin' ? [{ name: 'الإعدادات', href: '/settings', icon: Settings }] : []),
+    { name: t('suppliers', language), href: '/suppliers', icon: Building2 },
+    { name: t('expenses', language), href: '/expenses', icon: ReceiptText },
+    ...(user.role === 'admin' ? [{ name: t('settings', language), href: '/settings', icon: Settings }] : []),
   ];
 
   const navigation = [...primaryNav, ...secondaryNav];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800" dir="rtl">
+    <div className="min-h-screen bg-slate-50 flex text-slate-800" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white border-l border-slate-200 flex-col py-6 shrink-0">
+      <aside className={cn(
+        "hidden md:flex w-64 bg-white border-slate-200 flex-col py-6 shrink-0",
+        language === 'ar' ? "border-l" : "border-r"
+      )}>
         <div className="flex items-center px-6 pb-8 gap-3">
           <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
             ب
@@ -64,13 +69,14 @@ export default function Layout() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center px-6 py-3 text-[15px] font-medium transition-all border-r-[3px]",
+                  "flex items-center px-6 py-3 text-[15px] font-medium transition-all border-emerald-600",
+                  language === 'ar' ? 'border-r-[3px]' : 'border-l-[3px]',
                   isActive 
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-600" 
+                    ? "bg-emerald-50 text-emerald-700" 
                     : "border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-800"
                 )}
               >
-                <item.icon className="w-5 h-5 ml-3 opacity-70" />
+                <item.icon className={cn("w-5 h-5 opacity-70", language === 'ar' ? 'ml-3' : 'mr-3')} />
                 {item.name}
               </Link>
             );
@@ -82,8 +88,8 @@ export default function Layout() {
             onClick={logout}
             className="flex items-center px-4 py-2 text-[15px] font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full"
           >
-            <LogOut className="w-5 h-5 ml-3 opacity-70" />
-            تسجيل الخروج
+            <LogOut className={cn("w-5 h-5 opacity-70", language === 'ar' ? 'ml-3' : 'mr-3')} />
+            {t('logout', language)}
           </button>
         </div>
       </aside>
@@ -99,22 +105,50 @@ export default function Layout() {
             <div className="text-xl font-extrabold text-emerald-700 tracking-tight">بوصله</div>
           </div>
 
-          <div className="hidden md:block relative flex-1 max-w-md ml-4">
-            <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className={cn("hidden md:block relative flex-1 max-w-md", language === 'ar' ? "ml-4" : "mr-4")}>
+            <Search className={cn("w-4 h-4 absolute top-1/2 -translate-y-1/2 text-slate-400", language === 'ar' ? "right-4" : "left-4")} />
             <input 
               type="text" 
-              className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
-              placeholder="ابحث عن حجز، عميل، أو فاتورة..."
+              className={cn(
+                "bg-slate-100 rounded-full py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors",
+                language === 'ar' ? "pr-10 pl-4" : "pl-10 pr-4"
+              )}
+              placeholder="..."
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-left hidden sm:block">
-              <span className="block text-sm font-semibold text-slate-800">{user.name}</span>
-              <span className="block text-[11px] text-slate-400">{user.role === 'admin' ? 'المدير العام' : 'موظف'}</span>
-            </div>
-            <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-200 border-2 border-emerald-100 flex items-center justify-center text-slate-600 font-bold text-sm">
-              {user.name.charAt(0)}
+          <div className="flex items-center gap-4">
+            {staffMembers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <UserCircle className="w-5 h-5 text-slate-400 hidden sm:block" />
+                <select 
+                  value={activeStaff || ''} 
+                  onChange={(e) => setActiveStaff(e.target.value || null)}
+                  className="bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer hover:bg-slate-100 px-2 py-1 rounded-lg"
+                >
+                  <option value="">{user.name} (أساسي)</option>
+                  {staffMembers.map(staff => (
+                    <option key={staff} value={staff}>{staff}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <button 
+              onClick={() => setLanguage(language === 'ar' ? 'fr' : 'ar')}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-sm font-semibold transition-colors"
+            >
+              <Globe className="w-4 h-4" />
+              {language === 'ar' ? 'FR' : 'عربي'}
+            </button>
+            
+            <div className="flex items-center gap-3">
+              <div className={cn("hidden sm:block", language === 'ar' ? "text-left" : "text-right")}>
+                <span className="block text-sm font-semibold text-slate-800">{user.name}</span>
+                <span className="block text-[11px] text-slate-400">{user.role === 'admin' ? 'المدير العام' : 'موظف'}</span>
+              </div>
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-200 border-2 border-emerald-100 flex items-center justify-center text-slate-600 font-bold text-sm">
+                {user.name.charAt(0)}
+              </div>
             </div>
           </div>
         </header>

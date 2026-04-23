@@ -60,6 +60,8 @@ export interface Transaction {
   date: string;
 }
 
+export type Language = 'ar' | 'fr';
+
 interface AppState {
   user: User | null;
   customers: Customer[];
@@ -67,20 +69,38 @@ interface AppState {
   bookings: Booking[];
   transactions: Transaction[];
   isLoading: boolean;
+  language: Language;
+  
+  // Local Staff (POS Mode)
+  staffMembers: string[];
+  activeStaff: string | null;
+  loadStaffList: () => void;
+  addStaff: (name: string) => void;
+  removeStaff: (name: string) => void;
+  setActiveStaff: (name: string | null) => void;
   
   // Auth
   login: (user: User) => void;
   logout: () => void;
+  setLanguage: (lang: Language) => void;
   
   // Fetching
   fetchData: () => Promise<void>;
   
   // Mutations
   addCustomer: (customer: Omit<Customer, 'id' | 'agency_id'>) => Promise<void>;
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
   addSupplier: (supplier: Omit<Supplier, 'id' | 'agency_id'>) => Promise<void>;
+  updateSupplier: (id: string, updates: Partial<Supplier>) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
   addBooking: (booking: Omit<Booking, 'id' | 'agency_id' | 'created_at'>) => Promise<Booking | null>;
+  updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
+  deleteBooking: (id: string) => Promise<void>;
   updateBookingStatus: (id: string, status: BookingStatus) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'agency_id'>) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -90,9 +110,52 @@ export const useStore = create<AppState>((set, get) => ({
   bookings: [],
   transactions: [],
   isLoading: true,
+  language: 'ar',
+  
+  staffMembers: [],
+  activeStaff: null,
+
+  loadStaffList: () => {
+    const { user } = get();
+    if (!user) return;
+    try {
+      const stored = localStorage.getItem(`staff_${user.agency_id}`);
+      if (stored) {
+        set({ staffMembers: JSON.parse(stored) });
+      }
+    } catch { }
+  },
+
+  addStaff: (name: string) => {
+    const { user, staffMembers } = get();
+    if (!user || staffMembers.length >= 3) {
+      toast.error('لا يمكن إضافة أكثر من 3 موظفين');
+      return;
+    }
+    if (staffMembers.includes(name)) return;
+    const newList = [...staffMembers, name];
+    localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
+    set({ staffMembers: newList });
+    toast.success('تم إضافة الموظف بنجاح');
+  },
+
+  removeStaff: (name: string) => {
+    const { user, staffMembers, activeStaff } = get();
+    if (!user) return;
+    const newList = staffMembers.filter(n => n !== name);
+    localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
+    set({ 
+      staffMembers: newList,
+      activeStaff: activeStaff === name ? null : activeStaff 
+    });
+    toast.success('تم إزالة الموظف');
+  },
+
+  setActiveStaff: (name: string | null) => set({ activeStaff: name }),
 
   login: (user) => {
     set({ user });
+    get().loadStaffList();
     get().fetchData();
   },
 
@@ -104,6 +167,8 @@ export const useStore = create<AppState>((set, get) => ({
     }
     set({ user: null, customers: [], bookings: [], transactions: [], isLoading: false });
   },
+
+  setLanguage: (lang) => set({ language: lang }),
 
   fetchData: async () => {
     const { user } = get();
@@ -154,6 +219,28 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  updateCustomer: async (id, updates) => {
+    const { error } = await supabase.from('customers').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({ customers: state.customers.map((c) => (c.id === id ? { ...c, ...updates } : c)) }));
+      toast.success('تم تحديث بيانات العميل');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء تحديث بيانات العميل');
+    }
+  },
+
+  deleteCustomer: async (id) => {
+    const { error } = await supabase.from('customers').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ customers: state.customers.filter((c) => c.id !== id) }));
+      toast.success('تم حذف العميل');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء حذف العميل');
+    }
+  },
+
   addSupplier: async (supplier) => {
     const { user } = get();
     if (!user) return;
@@ -175,15 +262,41 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  updateSupplier: async (id, updates) => {
+    const { error } = await supabase.from('suppliers').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({ suppliers: state.suppliers.map((s) => (s.id === id ? { ...s, ...updates } : s)) }));
+      toast.success('تم تحديث بيانات المورد');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء تحديث بيانات المورد');
+    }
+  },
+
+  deleteSupplier: async (id) => {
+    const { error } = await supabase.from('suppliers').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ suppliers: state.suppliers.filter((s) => s.id !== id) }));
+      toast.success('تم حذف المورد');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء حذف المورد');
+    }
+  },
+
   addBooking: async (booking) => {
-    const { user } = get();
+    const { user, activeStaff } = get();
     if (!user) return null;
+
+    const finalDescription = activeStaff 
+      ? `${booking.description} | @staff:${activeStaff}`
+      : booking.description;
 
     const toastId = toast.loading('جاري إضافة الحجز...');
 
     const { data, error } = await supabase
       .from('bookings')
-      .insert([{ ...booking, agency_id: user.agency_id }])
+      .insert([{ ...booking, description: finalDescription, agency_id: user.agency_id }])
       .select()
       .single();
 
@@ -195,6 +308,28 @@ export const useStore = create<AppState>((set, get) => ({
       console.error(error);
       toast.error('حدث خطأ أثناء إضافة الحجز', { id: toastId });
       return null;
+    }
+  },
+
+  updateBooking: async (id, updates) => {
+    const { error } = await supabase.from('bookings').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({ bookings: state.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)) }));
+      toast.success('تم تحديث الحجز بنجاح');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء تحديث الحجز');
+    }
+  },
+
+  deleteBooking: async (id) => {
+    const { error } = await supabase.from('bookings').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ bookings: state.bookings.filter((b) => b.id !== id) }));
+      toast.success('تم حذف الحجز بنجاح');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء حذف الحجز');
     }
   },
 
@@ -221,14 +356,19 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addTransaction: async (transaction) => {
-    const { user } = get();
+    const { user, activeStaff } = get();
     if (!user) return;
+
+    const finalDescription = activeStaff
+      ? `${transaction.description} | @staff:${activeStaff}`
+      : transaction.description;
 
     const toastId = toast.loading('جاري تسجيل الحركة المالية...');
 
     // Handle undefined booking_id for Supabase
     const payload = {
       ...transaction,
+      description: finalDescription,
       agency_id: user.agency_id,
       booking_id: transaction.booking_id || null // Ensure null instead of empty string or undefined
     };
@@ -245,6 +385,28 @@ export const useStore = create<AppState>((set, get) => ({
     } else {
       console.error(error);
       toast.error('خطأ! لم يتم تسجيل الحركة المالية', { id: toastId });
+    }
+  },
+
+  updateTransaction: async (id, updates) => {
+    const { error } = await supabase.from('transactions').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({ transactions: state.transactions.map((t) => (t.id === id ? { ...t, ...updates } : t)) }));
+      toast.success('تم تحديث الحركة المالية بنجاح');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء تحديث الحركة');
+    }
+  },
+
+  deleteTransaction: async (id) => {
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
+      toast.success('تم حذف الحركة المالية');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء حذف الحركة المالية');
     }
   }
 }));

@@ -1,49 +1,83 @@
-import React, { useState } from 'react';
-import { useStore, BookingType, BookingStatus } from '../store/useStore';
-import { formatCurrency } from '../lib/utils';
-import { Plus, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useStore, BookingType, BookingStatus, Booking } from '../store/useStore';
+import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
+import { Plus, Search, Filter, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Bookings() {
-  const { bookings, customers, suppliers, addBooking, updateBookingStatus, addTransaction } = useStore();
+  const { bookings, customers, suppliers, addBooking, updateBooking, deleteBooking, updateBookingStatus, addTransaction, language } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
   
   // Form specific state
   const [selectedType, setSelectedType] = useState<BookingType>('flight');
   const [costPrice, setCostPrice] = useState<number>(0);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [advancePayment, setAdvancePayment] = useState<number>(0);
+  const [advancePaymentMethod, setAdvancePaymentMethod] = useState<string>('cash');
+
+  useEffect(() => {
+    if (editingBooking) {
+      setSelectedType(editingBooking.type);
+      setCostPrice(editingBooking.cost_price);
+      setSellingPrice(editingBooking.selling_price);
+    } else {
+      setSelectedType('flight');
+      setCostPrice(0);
+      setSellingPrice(0);
+    }
+  }, [editingBooking]);
 
   const filteredBookings = bookings.filter(b => {
     const customer = customers.find(c => c.id === b.customer_id);
     return customer?.name.includes(searchTerm) || b.description.includes(searchTerm);
   });
 
+  const handleOpenAddModal = () => {
+    setEditingBooking(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (booking: Booking) => {
+    setEditingBooking(booking);
+    setAdvancePayment(0);
+    setIsModalOpen(true);
+  };
+
   const handleAddBooking = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const type = formData.get('type') as BookingType;
-    const pnr = formData.get('pnr') as string;
+    let pnr = formData.get('pnr') as string;
     const supplier_id = formData.get('supplier_id') as string;
     const desc = formData.get('description') as string;
-    const national_id = formData.get('national_id') as string;
-    const receipt_number = formData.get('receipt_number') as string;
-    const expected_date = formData.get('expected_date') as string;
+    let national_id = formData.get('national_id') as string;
+    let receipt_number = formData.get('receipt_number') as string;
+    let expected_date = formData.get('expected_date') as string;
     
-    const parts = [];
-    if (type === 'passport') {
-      if (national_id) parts.push(`الرقم الوطني: ${national_id}`);
-      if (receipt_number) parts.push(`رقم الإيصال: ${receipt_number}`);
-      if (expected_date) parts.push(`موعد الاستلام: ${expected_date}`);
-      if (desc) parts.push(`التفاصيل: ${desc}`);
-    } else {
-      if (pnr) parts.push(`PNR: ${pnr}`);
-      if (desc) parts.push(`التفاصيل: ${desc}`);
+    // In edit mode we can just use the provided description or construct a new one.
+    // If it's edit mode we keep the original description if none of the specific fields changed, 
+    // but the easiest is just letting the user edit the raw description text in edit mode if they want.
+    // However, the form defines desc.
+    
+    let finalDescription = desc;
+    if (!editingBooking) {
+      const parts = [];
+      if (type === 'passport') {
+        if (national_id) parts.push(`الرقم الوطني: ${national_id}`);
+        if (receipt_number) parts.push(`رقم الإيصال: ${receipt_number}`);
+        if (expected_date) parts.push(`موعد الاستلام: ${expected_date}`);
+        if (desc) parts.push(`التفاصيل: ${desc}`);
+      } else {
+        if (pnr) parts.push(`PNR: ${pnr}`);
+        if (desc) parts.push(`التفاصيل: ${desc}`);
+      }
+      finalDescription = parts.join(' | ') || 'بدون وصف';
     }
-    
-    const finalDescription = parts.join(' | ') || 'بدون وصف';
 
-    const newBooking = await addBooking({
+    const bookingData: Partial<Booking> = {
       customer_id: formData.get('customer_id') as string,
       supplier_id: supplier_id || undefined,
       type: type,
@@ -54,25 +88,38 @@ export default function Bookings() {
       national_id: national_id || undefined,
       receipt_number: receipt_number || undefined,
       expected_date: expected_date || undefined
-    });
+    };
 
-    // Handle Quick Payment Recording
-    if (newBooking && advancePayment > 0) {
-      await addTransaction({
-        booking_id: newBooking.id,
-        type: 'income',
-        amount: advancePayment,
-        description: `دفعة مقدمة - ${type === 'passport' ? 'جواز سفر' : 'حجز'}`,
-        payment_method: 'cash',
-        date: new Date().toISOString()
-      });
+    if (editingBooking) {
+      await updateBooking(editingBooking.id, bookingData);
+    } else {
+      const newBooking = await addBooking(bookingData as Omit<Booking, 'id' | 'agency_id' | 'created_at'>);
+      // Handle Quick Payment Recording
+      if (newBooking && advancePayment > 0) {
+        await addTransaction({
+          booking_id: newBooking.id,
+          type: 'income',
+          amount: advancePayment,
+          description: `دفعة مقدمة - ${type === 'passport' ? 'جواز سفر' : 'حجز'}`,
+          payment_method: advancePaymentMethod,
+          date: new Date().toISOString()
+        });
+      }
     }
 
     setIsModalOpen(false);
+    setEditingBooking(null);
     setCostPrice(0);
     setSellingPrice(0);
     setAdvancePayment(0);
-    setSelectedType('flight'); // default back
+    setAdvancePaymentMethod('cash');
+  };
+
+  const handleDelete = () => {
+    if (bookingToDelete) {
+      deleteBooking(bookingToDelete.id);
+      setBookingToDelete(null);
+    }
   };
 
   const typeLabels: Record<BookingType, string> = {
@@ -111,7 +158,7 @@ export default function Bookings() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <div className="relative w-full sm:w-80">
@@ -130,7 +177,7 @@ export default function Bookings() {
           </button>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenAddModal}
           className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -168,7 +215,21 @@ export default function Bookings() {
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-500 whitespace-nowrap" dir="ltr">#{booking.id.substring(0, 8).toUpperCase()}</td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 font-medium whitespace-nowrap">{customer?.name}</td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-600 whitespace-nowrap">{typeLabels[booking.type]}</td>
-                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-600 min-w-[150px]">{booking.description}</td>
+                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-600 min-w-[150px]">
+                      {(() => {
+                        const { text, staffName } = parseDescriptionWithStaff(booking.description);
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span>{text}</span>
+                            {staffName && (
+                              <span className="w-fit inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] font-semibold text-slate-500 border border-slate-200">
+                                👤 {staffName}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-600 whitespace-nowrap">{formatCurrency(booking.cost_price)}</td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 font-bold whitespace-nowrap">{formatCurrency(booking.selling_price)}</td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-emerald-600 font-bold whitespace-nowrap">{formatCurrency(profit)}</td>
@@ -178,27 +239,43 @@ export default function Bookings() {
                       </span>
                     </td>
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 whitespace-nowrap">
-                      <select 
-                        value={booking.status}
-                        onChange={(e) => updateBookingStatus(booking.id, e.target.value as BookingStatus)}
-                        className="text-sm border border-slate-200 rounded p-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
-                      >
-                        {booking.type === 'passport' ? (
-                          <>
-                            <option value="documents_received">استلام المستندات</option>
-                            <option value="processing">قيد المعالجة</option>
-                            <option value="ready">جاهز للاستلام</option>
-                            <option value="delivered">تم التسليم</option>
-                            <option value="cancelled">ملغي</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="pending">معلق</option>
-                            <option value="confirmed">مؤكد</option>
-                            <option value="cancelled">ملغي</option>
-                          </>
-                        )}
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select 
+                          value={booking.status}
+                          onChange={(e) => updateBookingStatus(booking.id, e.target.value as BookingStatus)}
+                          className="text-sm border border-slate-200 rounded p-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                        >
+                          {booking.type === 'passport' ? (
+                            <>
+                              <option value="documents_received">استلام المستندات</option>
+                              <option value="processing">قيد المعالجة</option>
+                              <option value="ready">جاهز للاستلام</option>
+                              <option value="delivered">تم التسليم</option>
+                              <option value="cancelled">ملغي</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="pending">معلق</option>
+                              <option value="confirmed">مؤكد</option>
+                              <option value="cancelled">ملغي</option>
+                            </>
+                          )}
+                        </select>
+                        <button 
+                          onClick={() => handleOpenEditModal(booking)}
+                          className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors inline-block"
+                          title="تعديل الحجز"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => setBookingToDelete(booking)}
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors inline-block"
+                          title="حذف الحجز"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -208,15 +285,15 @@ export default function Bookings() {
         </div>
       </section>
 
-      {/* Add Booking Modal */}
+      {/* Add/Edit Booking Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">إضافة حجز جديد</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingBooking ? 'تعديل الحجز' : 'إضافة حجز جديد'}</h3>
             <form onSubmit={handleAddBooking} className="space-y-4">
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">العميل</label>
-                <select required name="customer_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                <select defaultValue={editingBooking?.customer_id} required name="customer_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                   <option value="">اختر العميل...</option>
                   {customers.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -245,36 +322,37 @@ export default function Bookings() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[13px] font-semibold text-slate-600 mb-1">الرقم الوطني (NNI)</label>
-                      <input name="national_id" type="text" placeholder="مثال: 1234567890" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                      <input defaultValue={editingBooking?.national_id} name="national_id" type="text" placeholder="مثال: 1234567890" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                     </div>
                     <div>
                       <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
-                      <input name="receipt_number" type="text" placeholder="رقم المعاملة في الإدارة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                      <input defaultValue={editingBooking?.receipt_number} name="receipt_number" type="text" placeholder="رقم المعاملة في الإدارة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-slate-600 mb-1">موعد الاستلام المتوقع</label>
-                    <input name="expected_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    <input defaultValue={editingBooking?.expected_date} name="expected_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات/وصف إضافي</label>
-                    <input name="description" type="text" placeholder="مثال: استخراج لأول مرة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    <input defaultValue={editingBooking ? parseDescriptionWithStaff(editingBooking.description).text : ''} name="description" type="text" placeholder="مثال: استخراج لأول مرة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                   </div>
                 </>
               ) : (
                 <>
                   <div>
                     <label className="block text-[13px] font-semibold text-slate-600 mb-1">تفاصيل الرحلة/الوصف</label>
-                    <input required name="description" type="text" placeholder="مثال: رحلة نواكشوط - دكار" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    <input defaultValue={editingBooking ? parseDescriptionWithStaff(editingBooking.description).text : ''} required name="description" type="text" placeholder="مثال: رحلة نواكشوط - دكار" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الحجز (PNR)</label>
+                      {/* PNR might be in description initially, but not separated. For edit it's fine. */}
                       <input name="pnr" type="text" placeholder="اختياري" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                     </div>
                     <div>
                       <label className="block text-[13px] font-semibold text-slate-600 mb-1">المورد (اختياري)</label>
-                      <select name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                      <select defaultValue={editingBooking?.supplier_id} name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                         <option value="">لا يوجد...</option>
                         {suppliers.map(s => (
                           <option key={s.id} value={s.id}>{s.name}</option>
@@ -320,23 +398,43 @@ export default function Bookings() {
                 </div>
               )}
               
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">الدفعة المقدمة (مقبوضات الكاشير)</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  step="1" 
-                  value={advancePayment || ''}
-                  onChange={(e) => setAdvancePayment(Number(e.target.value))}
-                  placeholder="المبلغ المدفوع الآن (اختياري)"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white" 
-                />
-                <p className="text-[11px] text-slate-500 mt-1">سيتم إنشاء سند قبض تلقائياً في يومية الكاشير بهذا المبلغ.</p>
-              </div>
+              {!editingBooking && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">الدفعة المقدمة (مقبوضات الكاشير)</label>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      step="1" 
+                      value={advancePayment || ''}
+                      onChange={(e) => setAdvancePayment(Number(e.target.value))}
+                      placeholder="المبلغ المدفوع الآن (اختياري)"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white" 
+                    />
+                  </div>
+                  {advancePayment > 0 && (
+                    <div>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">طريقة الدفع</label>
+                      <select
+                        value={advancePaymentMethod}
+                        onChange={(e) => setAdvancePaymentMethod(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+                      >
+                        <option value="cash">نقدي (Cash)</option>
+                        <option value="bankily">بنكيلي (Bankily)</option>
+                        <option value="masrivi">مصرفي (Masrivi)</option>
+                        <option value="sedad">سداد (Sedad)</option>
+                        <option value="other">أخرى</option>
+                      </select>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-slate-500">سيتم إنشاء سند قبض تلقائياً في يومية الكاشير بهذا المبلغ.</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">الحالة</label>
-                <select required name="status" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                <select defaultValue={editingBooking?.status} required name="status" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                   {selectedType === 'passport' ? (
                     <>
                       <option value="documents_received">استلام المستندات</option>
@@ -359,10 +457,40 @@ export default function Bookings() {
                   إلغاء
                 </button>
                 <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  حفظ الحجز
+                  {editingBooking ? 'حفظ التعديلات' : 'حفظ الحجز'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {bookingToDelete && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-[17px] font-bold">تأكيد الحذف</h3>
+            </div>
+            <p className="text-slate-600 text-sm mb-6">
+              هل أنت متأكد من حذف الحجز رقم <strong>#{bookingToDelete.id.substring(0,8).toUpperCase()}</strong>؟<br />
+              <span className="text-[12px] text-slate-500">هذا الإجراء لا يمكن التراجع عنه.</span>
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setBookingToDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                حذف الحجز
+              </button>
+            </div>
           </div>
         </div>
       )}

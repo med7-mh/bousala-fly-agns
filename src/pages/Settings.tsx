@@ -8,7 +8,16 @@ import { formatCurrency } from '../lib/utils';
 interface Profile extends User {} // reuse user type
 
 export default function Settings() {
-  const { user, transactions, bookings } = useStore();
+  const [newStaffName, setNewStaffName] = useState('');
+  const { user, transactions, bookings, language, staffMembers, addStaff, removeStaff } = useStore();
+
+  const handleAddLocalStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newStaffName.trim()) {
+      addStaff(newStaffName.trim());
+      setNewStaffName('');
+    }
+  };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [reportDate, setReportDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -51,7 +60,7 @@ export default function Settings() {
 
   if (user?.role !== 'admin') {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500">
+      <div className="flex flex-col items-center justify-center h-full text-slate-500" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <ShieldAlert className="w-16 h-16 mb-4 text-red-300" />
         <h2 className="text-xl font-bold">عذراً، لا تملك صلاحية الوصول</h2>
         <p>هذه الصفحة مخصصة لمدير الوكالة فقط.</p>
@@ -60,7 +69,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
+    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-slate-800">إعدادات الوكالة</h1>
         <p className="text-slate-500 text-sm">إدارة الموظفين والصلاحيات، والاطلاع على التقارير اليومية.</p>
@@ -68,47 +77,101 @@ export default function Settings() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* User Management */}
-        <section className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-fit">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-              <Users className="w-5 h-5 text-emerald-600" />
+        <section className="flex flex-col gap-8">
+          {/* Real User Management */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-fit">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                <Users className="w-5 h-5 text-emerald-600" />
+              </div>
+              <h2 className="text-[17px] font-bold text-slate-800">إدارة الحسابات (تسجيل الدخول)</h2>
             </div>
-            <h2 className="text-[17px] font-bold text-slate-800">إدارة الموظفين</h2>
-          </div>
-          
-          <div className="flex flex-col gap-4">
-            {profiles.map(profile => (
-              <div key={profile.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-100 rounded-lg hover:border-slate-200 transition-colors">
-                <div className="flex items-center gap-3 mb-3 sm:mb-0">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                    {profile.name.charAt(0)}
+            
+            <div className="flex flex-col gap-4">
+              {profiles.map(profile => (
+                <div key={profile.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-100 rounded-lg hover:border-slate-200 transition-colors">
+                  <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
+                      {profile.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800 text-sm">{profile.name}</h3>
+                      <p className="text-[12px] text-slate-500">{profile.role === 'admin' ? 'مدير عام (أدمن)' : 'موظف مبيعات'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800 text-sm">{profile.name}</h3>
-                    <p className="text-[12px] text-slate-500">{profile.role === 'admin' ? 'مدير عام (أدمن)' : 'موظف مبيعات'}</p>
-                  </div>
+                  {profile.id !== user?.id ? (
+                    <select
+                      value={profile.role}
+                      onChange={(e) => updateRole(profile.id, e.target.value as 'admin' | 'agent')}
+                      className="px-3 py-1.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+                    >
+                      <option value="agent">موظف مبيعات</option>
+                      <option value="admin">مدير عام</option>
+                    </select>
+                  ) : (
+                    <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-medium text-xs rounded-lg whitespace-nowrap">
+                      حسابك الحالي
+                    </span>
+                  )}
                 </div>
-                {profile.id !== user.id ? (
-                  <select
-                    value={profile.role}
-                    onChange={(e) => updateRole(profile.id, e.target.value as 'admin' | 'agent')}
-                    className="px-3 py-1.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
-                  >
-                    <option value="agent">موظف مبيعات</option>
-                    <option value="admin">مدير عام</option>
-                  </select>
-                ) : (
-                  <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-medium text-xs rounded-lg whitespace-nowrap">
-                    حسابك الحالي
-                  </span>
+              ))}
+              
+              <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-600">
+                <span className="font-bold block mb-1">💡 وصول الموظفين</span>
+                إذا أردت أن يدخل الموظف من جهازه الشخصي، دعه يسجل حساب جديد ويستخدم اسم وكالتك.
+              </div>
+            </div>
+          </div>
+
+          {/* Local POS Staff Management */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-fit">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-[17px] font-bold text-slate-800">نقاط البيع (موظفي الحساب الحالي)</h2>
+                <p className="text-[12px] text-slate-500 mt-1">أضف حتى 3 موظفين للعمل على نفس هذا الجهاز.</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              <form onSubmit={handleAddLocalStaff} className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  placeholder="اسم الموظف..."
+                  disabled={staffMembers.length >= 3}
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm disabled:bg-slate-50" 
+                />
+                <button 
+                  type="submit" 
+                  disabled={staffMembers.length >= 3 || !newStaffName.trim()}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:bg-slate-300 transition-colors"
+                >
+                  إضافة ({staffMembers.length}/3)
+                </button>
+              </form>
+
+              <div className="flex flex-col gap-2">
+                {staffMembers.map((name, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-slate-50">
+                    <span className="text-sm font-semibold text-slate-700">{name}</span>
+                    <button 
+                      onClick={() => removeStaff(name)}
+                      className="text-red-500 hover:text-red-700 text-[12px] font-medium"
+                    >
+                      حذف
+                    </button>
+                  </div>
+                ))}
+                {staffMembers.length === 0 && (
+                  <div className="text-center p-4 text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg">
+                    لم تتم إضافة موظفين محليين بعد.
+                  </div>
                 )}
               </div>
-            ))}
-            
-            <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-100 text-[13px] text-slate-600">
-              <span className="font-bold block mb-1">💡 كيف أضيف موظف جديد؟</span>
-              يمكن للموظفين الجدد التسجيل من شاشة "إنشاء حساب"، وسيتم إضافتهم تلقائياً بصلاحية "موظف" إلى وكالتك بمجرد تسجيلهم باستخدام نفس اسم الوكالة، وبعدها يمكنك ترقيتهم لمدراء من هنا.
             </div>
           </div>
         </section>
