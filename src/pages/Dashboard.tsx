@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore, TransactionType } from '../store/useStore';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
 import { t } from '../lib/translations';
 import { 
   FileText, 
@@ -135,16 +135,16 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
           <div className="flex flex-col gap-1">
             <span className="text-slate-400 text-sm flex items-center gap-2"><ArrowDownCircle className="w-4 h-4 text-emerald-400" /> {t('total_income', language)}</span>
-            <span className="text-2xl font-bold">{formatCurrency(totalIncome)}</span>
+            <span className="text-2xl font-bold">{formatCurrency(totalIncome, t('currency', language))}</span>
           </div>
           <div className="flex flex-col gap-1 md:border-x border-slate-700 md:px-6">
             <span className="text-slate-400 text-sm flex items-center gap-2"><ArrowUpCircle className="w-4 h-4 text-red-400" /> {t('total_expense', language)}</span>
-            <span className="text-2xl font-bold">{formatCurrency(totalExpense)}</span>
+            <span className="text-2xl font-bold">{formatCurrency(totalExpense, t('currency', language))}</span>
           </div>
           <div className="flex flex-col gap-1 md:px-6">
             <span className="text-slate-400 text-sm">{t('net_balance', language)}</span>
             <span className={`text-3xl font-extrabold ${netBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {formatCurrency(netBalance)}
+              {formatCurrency(netBalance, t('currency', language))}
             </span>
           </div>
         </div>
@@ -165,7 +165,19 @@ export default function Dashboard() {
                       {tObj.type === 'income' ? <ArrowDownCircle className="w-5 h-5" /> : <ArrowUpCircle className="w-5 h-5" />}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-800 text-sm">{tObj.description}</p>
+                      {(() => {
+                        const { text, staffName } = parseDescriptionWithStaff(tObj.description);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-slate-800 text-sm">{text}</p>
+                            {staffName && (
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] font-semibold text-slate-500 border border-slate-200">
+                                👤 {staffName}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                         <Clock className="w-3 h-3" />
                         {new Date(tObj.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -178,7 +190,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className={`font-bold text-sm ${tObj.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`} dir="ltr">
-                    {tObj.type === 'income' ? '+' : '-'}{formatCurrency(tObj.amount)}
+                    {tObj.type === 'income' ? '+' : '-'}{formatCurrency(tObj.amount, t('currency', language))}
                   </div>
                 </div>
               ))}
@@ -232,8 +244,6 @@ export default function Dashboard() {
                     <option value="bankily">{t('bankily', language)}</option>
                     <option value="masrivi">{t('masrivi', language)}</option>
                     <option value="sedad">{t('sedad', language)}</option>
-                    <option value="bamis">{t('bamis', language)}</option>
-                    <option value="amanty">{t('amanty', language)}</option>
                     <option value="other">{t('other', language)}</option>
                   </select>
                 </div>

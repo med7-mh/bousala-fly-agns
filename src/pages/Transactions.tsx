@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, TransactionType, Transaction } from '../store/useStore';
-import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
+import { formatCurrency, parseDescriptionWithStaff, cn } from '../lib/utils';
 import { t } from '../lib/translations';
-import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Wallet, Landmark, Smartphone, CreditCard, Banknote, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Wallet, Landmark, Smartphone, CreditCard, Banknote, Edit2, Trash2, AlertTriangle, ArrowRightLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Transactions() {
   const { transactions, bookings, customers, suppliers, addTransaction, updateTransaction, deleteTransaction, language } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
@@ -95,33 +97,77 @@ export default function Transactions() {
     }
   };
 
+  const handleTransferSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const amount = Number(formData.get('amount'));
+    const fromAccount = formData.get('from_account') as string;
+    const toAccount = formData.get('to_account') as string;
+    const description = formData.get('description') as string;
+
+    if (amount <= 0) {
+      toast.error('المبلغ يجب أن يكون أكبر من صفر');
+      return;
+    }
+    if (fromAccount === toAccount) {
+      toast.error('لا يمكن التحويل لنفس الحساب');
+      return;
+    }
+
+    const fromLabel = paymentMethodsList.find(m => m.id === fromAccount)?.label || fromAccount;
+    const toLabel = paymentMethodsList.find(m => m.id === toAccount)?.label || toAccount;
+
+    const baseDesc = description || `تحويل داخلي من ${fromLabel} إلى ${toLabel}`;
+
+    // Expense from source account
+    addTransaction({
+      type: 'expense',
+      amount: amount,
+      description: baseDesc,
+      payment_method: fromAccount,
+      date: new Date().toISOString().split('T')[0],
+    } as Omit<Transaction, 'id' | 'agency_id'>);
+
+    // Income to destination account
+    addTransaction({
+      type: 'income',
+      amount: amount,
+      description: baseDesc,
+      payment_method: toAccount,
+      date: new Date().toISOString().split('T')[0],
+    } as Omit<Transaction, 'id' | 'agency_id'>);
+
+    setIsTransferModalOpen(false);
+    toast.success('تم التحويل بنجاح');
+  };
+
   return (
     <div className="flex flex-col gap-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Financial Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-slate-500">إجمالي المقبوضات</h3>
+            <h3 className="text-[13px] font-semibold text-slate-500">{t('total_income', language)}</h3>
             <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
               <ArrowUpRight className="w-4 h-4 text-emerald-600" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalIncome)}</p>
+          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalIncome, t('currency', language))}</p>
         </div>
         
         <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-slate-500">إجمالي المدفوعات</h3>
+            <h3 className="text-[13px] font-semibold text-slate-500">{t('total_expense', language)}</h3>
             <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
               <ArrowDownRight className="w-4 h-4 text-red-600" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalExpense)}</p>
+          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalExpense, t('currency', language))}</p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-slate-500">الرصيد الحالي</h3>
+            <h3 className="text-[13px] font-semibold text-slate-500">{t('balance', language)}</h3>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${balance >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
               <span className={`text-sm font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {balance >= 0 ? '+' : '-'}
@@ -129,7 +175,7 @@ export default function Transactions() {
             </div>
           </div>
           <p className={`text-2xl font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-            {formatCurrency(Math.abs(balance))}
+            {formatCurrency(Math.abs(balance), t('currency', language))}
           </p>
         </div>
       </div>
@@ -147,8 +193,8 @@ export default function Transactions() {
               </div>
               <div className="mt-2">
                 <p className={`text-lg font-bold ${methodBalance >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
-                  <span className="text-[11px] font-normal text-slate-400 ml-1">MRU</span>
-                  {formatCurrency(methodBalance)}
+                  <span className="text-[11px] font-normal text-slate-400 ml-1">{t('currency', language)}</span>
+                  {formatCurrency(methodBalance, '')}
                 </p>
               </div>
             </div>
@@ -162,24 +208,36 @@ export default function Transactions() {
             <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text"
-              placeholder="ابحث في العمليات..."
-              className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
+              placeholder={t('search', language)}
+              className={cn(
+                "bg-slate-100 rounded-full py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors",
+                language === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'
+              )}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <button className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full sm:w-auto">
             <Filter className="w-4 h-4" />
-            تصفية
+            {t('filter', language)}
           </button>
         </div>
-        <button 
-          onClick={handleOpenAddModal}
-          className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة عملية
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setIsTransferModalOpen(true)}
+            className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+            {t('internal_transfer', language)}
+          </button>
+          <button 
+            onClick={handleOpenAddModal}
+            className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            {t('add_transaction', language)}
+          </button>
+        </div>
       </div>
 
       <section className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col">
@@ -187,12 +245,12 @@ export default function Transactions() {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">التاريخ</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">النوع</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">المبلغ</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">وسيلة الدفع</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الوصف</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">مرتبط بحجز</th>
+                <th className={cn("py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>{t('date_col', language)}</th>
+                <th className={cn("py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>{t('type_col', language)}</th>
+                <th className={cn("py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>{t('amount_col', language)}</th>
+                <th className={cn("py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>{t('method_col', language)}</th>
+                <th className={cn("py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>{t('desc_col', language)}</th>
+                <th className={cn("py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>{t('booking_col', language)}</th>
               </tr>
             </thead>
             <tbody>
@@ -205,28 +263,21 @@ export default function Transactions() {
                     <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-500 whitespace-nowrap" dir="ltr">
                       {new Date(transaction.date || '').toLocaleDateString('en-GB')}
                     </td>
-                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] whitespace-nowrap">
+                    <td className={cn("py-3.5 px-2 border-b border-slate-50 text-[14px] whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold ${
                         transaction.type === 'income' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
                       }`}>
                         {transaction.type === 'income' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {transaction.type === 'income' ? 'مقبوضات (سند قبض)' : transaction.type === 'operating_expense' ? 'مصروف تشغيلي' : 'مدفوعات (سند صرف)'}
+                        {transaction.type === 'income' ? t('transaction_income', language) : transaction.type === 'operating_expense' ? t('operating_expense_short', language) : t('transaction_expense', language)}
                       </span>
                     </td>
-                    <td className={`py-3.5 px-2 border-b border-slate-50 text-[14px] font-bold whitespace-nowrap ${
-                      transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    <td className={cn("py-3.5 px-2 border-b border-slate-50 text-[14px] font-bold whitespace-nowrap", language === 'ar' ? "text-right" : "text-left", transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600')} dir="ltr">
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount, t('currency', language))}
                     </td>
-                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-700 whitespace-nowrap">
-                      {transaction.payment_method === 'cash' ? 'نقدي (Cash)' :
-                       transaction.payment_method === 'bankily' ? 'بنكيلي (Bankily)' :
-                       transaction.payment_method === 'masrivi' ? 'مصرفي (Masrivi)' :
-                       transaction.payment_method === 'sedad' ? 'سداد (Sedad)' :
-                       transaction.payment_method === 'other' ? 'أخرى' :
-                       (transaction.payment_method || 'نقدي (Cash)')}
+                    <td className={cn("py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-700 whitespace-nowrap", language === 'ar' ? "text-right" : "text-left")}>
+                      {t(transaction.payment_method as any || 'cash', language)}
                     </td>
-                    <td className="py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 min-w-[150px]">
+                    <td className={cn("py-3.5 px-2 border-b border-slate-50 text-[14px] text-slate-800 min-w-[150px]", language === 'ar' ? "text-right" : "text-left")}>
                       {(() => {
                         const { text, staffName } = parseDescriptionWithStaff(transaction.description);
                         return (
@@ -275,7 +326,7 @@ export default function Transactions() {
               {filteredTransactions.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500">
-                    لا توجد عمليات مالية
+                    {t('no_financial_transactions', language)}
                   </td>
                 </tr>
               )}
@@ -288,48 +339,48 @@ export default function Transactions() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingTransaction ? 'تعديل العملية المالية' : 'إضافة عملية مالية'}</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingTransaction ? t('edit_transaction_title', language) : t('add_transaction_title', language)}</h3>
             <form onSubmit={handleAddTransaction} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع العملية</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('transaction_type', language)}</label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex items-center justify-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
                     <input required type="radio" name="type" value="income" checked={txType === 'income'} onChange={(e) => setTxType(e.target.value as TransactionType)} className="hidden" />
                     <ArrowUpRight className="w-4 h-4 text-emerald-600" />
-                    <span className="text-sm font-medium text-slate-800">مقبوضات</span>
+                    <span className="text-sm font-medium text-slate-800">{t('transaction_income', language)}</span>
                   </label>
                   <label className="flex items-center justify-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 has-[:checked]:border-red-500 has-[:checked]:bg-red-50">
                     <input required type="radio" name="type" value="expense" checked={txType === 'expense' || txType === 'operating_expense'} onChange={(e) => setTxType('expense' as TransactionType)} className="hidden" />
                     <ArrowDownRight className="w-4 h-4 text-red-600" />
-                    <span className="text-sm font-medium text-slate-800">مدفوعات</span>
+                    <span className="text-sm font-medium text-slate-800">{t('transaction_expense', language)}</span>
                   </label>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">المبلغ (أوقية)</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('amount', language)} ({t('currency', language)})</label>
                   <input defaultValue={editingTransaction?.amount} required name="amount" type="number" min="0" step="1" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">طريقة الدفع/الاستلام</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('payment_receipt_method', language)}</label>
                   <select defaultValue={editingTransaction?.payment_method || 'cash'} name="payment_method" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
-                    <option value="cash">نقدي (Cash)</option>
-                    <option value="bankily">بنكيلي (Bankily)</option>
-                    <option value="masrivi">مصرفي (Masrivi)</option>
-                    <option value="sedad">سداد (Sedad)</option>
-                    <option value="other">أخرى</option>
+                    <option value="cash">{t('cash', language)}</option>
+                    <option value="bankily">{t('bankily', language)}</option>
+                    <option value="masrivi">{t('masrivi', language)}</option>
+                    <option value="sedad">{t('sedad', language)}</option>
+                    <option value="other">{t('other', language)}</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">البيان/الوصف</label>
-                <input defaultValue={editingTransaction ? parseDescriptionWithStaff(editingTransaction.description).text : ''} required name="description" type="text" placeholder="مثال: دفعة مقدمة لتذكرة ذهاب فقط" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('description', language)}</label>
+                <input defaultValue={editingTransaction ? parseDescriptionWithStaff(editingTransaction.description).text : ''} required name="description" type="text" placeholder={t('transaction_desc_placeholder', language)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
               {(txType === 'expense' || txType === 'operating_expense') && (
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">مرتبط بمورد (اختياري)</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('linked_supplier_optional', language)}</label>
                   <select defaultValue={editingTransaction?.supplier_id} name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
-                    <option value="">بدون مورد...</option>
+                    <option value="">{t('no_supplier', language)}</option>
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
@@ -338,9 +389,9 @@ export default function Transactions() {
               )}
               {txType === 'income' && (
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">مرتبط بحجز (اختياري)</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('linked_booking_optional', language)}</label>
                   <select defaultValue={editingTransaction?.booking_id} name="booking_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
-                    <option value="">بدون حجز...</option>
+                    <option value="">{t('no_booking', language)}</option>
                     {bookings.map(b => {
                       const customer = customers.find(c => c.id === b.customer_id);
                       return (
@@ -354,10 +405,10 @@ export default function Transactions() {
               )}
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                  إلغاء
+                  {t('cancel', language)}
                 </button>
                 <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  {editingTransaction ? 'حفظ التعديلات' : 'حفظ العملية'}
+                  {editingTransaction ? t('save_changes', language) : t('save_transaction', language)}
                 </button>
               </div>
             </form>
@@ -371,26 +422,82 @@ export default function Transactions() {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl">
             <div className="flex items-center gap-3 text-red-600 mb-4">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-[17px] font-bold">تأكيد الحذف</h3>
+              <h3 className="text-[17px] font-bold">{t('delete', language)}</h3>
             </div>
             <p className="text-slate-600 text-sm mb-6">
-              هل أنت متأكد من حذف العملية <strong>{transactionToDelete.description}</strong>؟<br />
-              <span className="text-[12px] text-slate-500">هذا الإجراء لا يمكن التراجع عنه. قد يؤثر على حسابات العملاء والموردين.</span>
+              {t('delete_transaction_confirm', language)} <strong>{transactionToDelete.description}</strong>?<br />
+              <span className="text-[12px] text-slate-500">{t('delete_transaction_warning', language)}</span>
             </p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setTransactionToDelete(null)}
                 className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                إلغاء
+                {t('cancel', language)}
               </button>
               <button 
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                حذف العملية
+                {t('delete', language)}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Funds Modal */}
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl">
+            <div className="flex items-center gap-3 text-blue-600 mb-4">
+              <ArrowRightLeft className="w-6 h-6" />
+              <h3 className="text-[17px] font-bold">{t('internal_transfer', language)}</h3>
+            </div>
+            
+            <form onSubmit={handleTransferSubmit} className={cn("space-y-4", language === 'ar' ? 'text-right' : 'text-left')}>
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('transfer_amount', language)}</label>
+                <input required name="amount" type="number" min="1" step="1" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm font-bold" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('from_account', language)}</label>
+                  <select required name="from_account" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white">
+                    <option value="cash">{t('cash', language)}</option>
+                    <option value="bankily">{t('bankily', language)}</option>
+                    <option value="masrivi">{t('masrivi', language)}</option>
+                    <option value="sedad">{t('sedad', language)}</option>
+                    <option value="other">{t('other', language)}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('to_account', language)}</label>
+                  <select required name="to_account" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white">
+                    <option value="bankily">{t('bankily', language)}</option>
+                    <option value="masrivi">{t('masrivi', language)}</option>
+                    <option value="sedad">{t('sedad', language)}</option>
+                    <option value="cash">{t('cash', language)}</option>
+                    <option value="other">{t('other', language)}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('transfer_desc_optional', language)}</label>
+                <input name="description" type="text" placeholder={t('transfer_desc_placeholder', language)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                  {t('cancel', language)}
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">
+                  {t('execute_transfer', language)}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

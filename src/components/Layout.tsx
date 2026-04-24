@@ -23,6 +23,9 @@ export default function Layout() {
   const { user, logout, language, setLanguage, staffMembers, activeStaff, setActiveStaff } = useStore();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [pinModalStaff, setPinModalStaff] = useState<any>(null);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -113,7 +116,7 @@ export default function Layout() {
                 "bg-slate-100 rounded-full py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors",
                 language === 'ar' ? "pr-10 pl-4" : "pl-10 pr-4"
               )}
-              placeholder="..."
+              placeholder={t('search', language)}
             />
           </div>
 
@@ -122,13 +125,25 @@ export default function Layout() {
               <div className="flex items-center gap-2">
                 <UserCircle className="w-5 h-5 text-slate-400 hidden sm:block" />
                 <select 
-                  value={activeStaff || ''} 
-                  onChange={(e) => setActiveStaff(e.target.value || null)}
-                  className="bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer hover:bg-slate-100 px-2 py-1 rounded-lg"
+                  value={activeStaff?.name || ''} 
+                  onChange={(e) => {
+                    const selectedName = e.target.value;
+                    if (!selectedName) {
+                       setActiveStaff(null);
+                    } else {
+                       const staff = staffMembers.find(s => s.name === selectedName);
+                       if (staff) {
+                          setPinModalStaff(staff);
+                          setPinInput('');
+                          setPinError(false);
+                       }
+                    }
+                  }}
+                  className="bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer hover:bg-slate-100 px-2 py-1 rounded-lg w-full max-w-[150px] truncate"
                 >
-                  <option value="">{user.name} (أساسي)</option>
+                  <option value="">{user.name} ({language === 'ar' ? 'أساسي' : 'Principal'})</option>
                   {staffMembers.map(staff => (
-                    <option key={staff} value={staff}>{staff}</option>
+                    <option key={staff.name} value={staff.name}>{staff.name}</option>
                   ))}
                 </select>
               </div>
@@ -144,7 +159,7 @@ export default function Layout() {
             <div className="flex items-center gap-3">
               <div className={cn("hidden sm:block", language === 'ar' ? "text-left" : "text-right")}>
                 <span className="block text-sm font-semibold text-slate-800">{user.name}</span>
-                <span className="block text-[11px] text-slate-400">{user.role === 'admin' ? 'المدير العام' : 'موظف'}</span>
+                <span className="block text-[11px] text-slate-400">{user.role === 'admin' ? (language === 'ar' ? 'المدير العام' : 'Directeur Général') : (language === 'ar' ? 'موظف' : 'Employé')}</span>
               </div>
               <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-200 border-2 border-emerald-100 flex items-center justify-center text-slate-600 font-bold text-sm">
                 {user.name.charAt(0)}
@@ -222,6 +237,62 @@ export default function Layout() {
               >
                 <LogOut className="w-5 h-5 opacity-80" />
                 <span className="font-semibold text-[15px]">تسجيل الخروج</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PIN Verification Modal */}
+      {pinModalStaff && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-xs shadow-xl text-center">
+            <UserCircle className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-800 mb-1">{pinModalStaff.name}</h3>
+            <p className="text-sm text-slate-500 mb-4">{language === 'ar' ? 'أدخل الرمز السري للمتابعة' : 'Veuillez saisir votre code PIN'}</p>
+            
+            <input 
+              type="password"
+              autoFocus
+              maxLength={4}
+              value={pinInput}
+              onChange={(e) => {
+                setPinInput(e.target.value);
+                setPinError(false);
+              }}
+              onKeyDown={(e) => {
+                 if(e.key === 'Enter') {
+                   if(pinInput === pinModalStaff.pin) {
+                     setActiveStaff(pinModalStaff);
+                     setPinModalStaff(null);
+                   } else {
+                     setPinError(true);
+                   }
+                 }
+              }}
+              className={cn("w-full text-center tracking-[1em] font-bold text-xl px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:outline-none mb-4", pinError ? "border-red-500 focus:ring-red-500" : "focus:ring-emerald-500")}
+            />
+            {pinError && <p className="text-xs text-red-500 mb-4">{language === 'ar' ? 'الرمز غير صحيح' : 'Code PIN incorrect'}</p>}
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setPinModalStaff(null)} 
+                className="flex-1 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                {t('cancel', language)}
+              </button>
+              <button 
+                onClick={() => {
+                   if(pinInput === pinModalStaff.pin) {
+                     setActiveStaff(pinModalStaff);
+                     setPinModalStaff(null);
+                   } else {
+                     setPinError(true);
+                   }
+                }}
+                className="flex-1 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+              >
+                {language === 'ar' ? 'دخول' : 'Entrer'}
               </button>
             </div>
           </div>

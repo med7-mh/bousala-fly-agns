@@ -5,12 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const formatCurrency = (amount: number) => {
+export const formatCurrency = (amount: number, currencyString: string = 'أوقية') => {
   return new Intl.NumberFormat('en-US', {
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount) + ' أوقية';
+  }).format(amount) + ' ' + currencyString;
 };
 
 export const parseDescriptionWithStaff = (description: string) => {

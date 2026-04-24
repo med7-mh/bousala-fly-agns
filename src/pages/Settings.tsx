@@ -9,13 +9,17 @@ interface Profile extends User {} // reuse user type
 
 export default function Settings() {
   const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffPin, setNewStaffPin] = useState('');
   const { user, transactions, bookings, language, staffMembers, addStaff, removeStaff } = useStore();
 
   const handleAddLocalStaff = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newStaffName.trim()) {
-      addStaff(newStaffName.trim());
+    if (newStaffName.trim() && newStaffPin.length === 4) {
+      addStaff(newStaffName.trim(), newStaffPin);
       setNewStaffName('');
+      setNewStaffPin('');
+    } else if (newStaffPin.length !== 4) {
+      toast.error('الرمز السري يجب أن يكون 4 أرقام');
     }
   };
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -136,30 +140,44 @@ export default function Settings() {
             </div>
             
             <div className="flex flex-col gap-4">
-              <form onSubmit={handleAddLocalStaff} className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newStaffName}
-                  onChange={(e) => setNewStaffName(e.target.value)}
-                  placeholder="اسم الموظف..."
-                  disabled={staffMembers.length >= 3}
-                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm disabled:bg-slate-50" 
-                />
+              <form onSubmit={handleAddLocalStaff} className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={newStaffName}
+                    onChange={(e) => setNewStaffName(e.target.value)}
+                    placeholder="اسم الموظف..."
+                    disabled={staffMembers.length >= 3}
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm disabled:bg-slate-50" 
+                  />
+                  <input 
+                    type="password"
+                    maxLength={4}
+                    value={newStaffPin}
+                    onChange={(e) => setNewStaffPin(e.target.value.replace(/\D/g, ''))}
+                    placeholder="الرمز 4 أرقام"
+                    disabled={staffMembers.length >= 3}
+                    className="w-32 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm tracking-widest text-center disabled:bg-slate-50" 
+                  />
+                </div>
                 <button 
                   type="submit" 
-                  disabled={staffMembers.length >= 3 || !newStaffName.trim()}
-                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:bg-slate-300 transition-colors"
+                  disabled={staffMembers.length >= 3 || !newStaffName.trim() || newStaffPin.length !== 4}
+                  className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:bg-slate-300 transition-colors"
                 >
                   إضافة ({staffMembers.length}/3)
                 </button>
               </form>
 
               <div className="flex flex-col gap-2">
-                {staffMembers.map((name, idx) => (
+                {staffMembers.map((staff, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-slate-50">
-                    <span className="text-sm font-semibold text-slate-700">{name}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-700">{staff.name}</span>
+                      <span className="text-[10px] text-slate-400">الرمز: ****</span>
+                    </div>
                     <button 
-                      onClick={() => removeStaff(name)}
+                      onClick={() => removeStaff(staff.name)}
                       className="text-red-500 hover:text-red-700 text-[12px] font-medium"
                     >
                       حذف

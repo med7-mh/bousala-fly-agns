@@ -60,6 +60,11 @@ export interface Transaction {
   date: string;
 }
 
+export interface LocalStaff {
+  name: string;
+  pin: string;
+}
+
 export type Language = 'ar' | 'fr';
 
 interface AppState {
@@ -72,12 +77,12 @@ interface AppState {
   language: Language;
   
   // Local Staff (POS Mode)
-  staffMembers: string[];
-  activeStaff: string | null;
+  staffMembers: LocalStaff[];
+  activeStaff: LocalStaff | null;
   loadStaffList: () => void;
-  addStaff: (name: string) => void;
+  addStaff: (name: string, pin: string) => void;
   removeStaff: (name: string) => void;
-  setActiveStaff: (name: string | null) => void;
+  setActiveStaff: (staff: LocalStaff | null) => void;
   
   // Auth
   login: (user: User) => void;
@@ -121,19 +126,24 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const stored = localStorage.getItem(`staff_${user.agency_id}`);
       if (stored) {
-        set({ staffMembers: JSON.parse(stored) });
+        const parsed = JSON.parse(stored);
+        // Handle migration from old Array of strings to Array of LocalStaff objects
+        const migrated = parsed.map((item: any) => 
+          typeof item === 'string' ? { name: item, pin: '0000' } : item
+        );
+        set({ staffMembers: migrated });
       }
     } catch { }
   },
 
-  addStaff: (name: string) => {
+  addStaff: (name: string, pin: string) => {
     const { user, staffMembers } = get();
     if (!user || staffMembers.length >= 3) {
       toast.error('لا يمكن إضافة أكثر من 3 موظفين');
       return;
     }
-    if (staffMembers.includes(name)) return;
-    const newList = [...staffMembers, name];
+    if (staffMembers.some(s => s.name === name)) return;
+    const newList = [...staffMembers, { name, pin }];
     localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
     set({ staffMembers: newList });
     toast.success('تم إضافة الموظف بنجاح');
@@ -142,16 +152,16 @@ export const useStore = create<AppState>((set, get) => ({
   removeStaff: (name: string) => {
     const { user, staffMembers, activeStaff } = get();
     if (!user) return;
-    const newList = staffMembers.filter(n => n !== name);
+    const newList = staffMembers.filter(s => s.name !== name);
     localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
     set({ 
       staffMembers: newList,
-      activeStaff: activeStaff === name ? null : activeStaff 
+      activeStaff: activeStaff?.name === name ? null : activeStaff 
     });
     toast.success('تم إزالة الموظف');
   },
 
-  setActiveStaff: (name: string | null) => set({ activeStaff: name }),
+  setActiveStaff: (staff: LocalStaff | null) => set({ activeStaff: staff }),
 
   login: (user) => {
     set({ user });
@@ -289,7 +299,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!user) return null;
 
     const finalDescription = activeStaff 
-      ? `${booking.description} | @staff:${activeStaff}`
+      ? `${booking.description} | @staff:${activeStaff.name}`
       : booking.description;
 
     const toastId = toast.loading('جاري إضافة الحجز...');
@@ -360,7 +370,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!user) return;
 
     const finalDescription = activeStaff
-      ? `${transaction.description} | @staff:${activeStaff}`
+      ? `${transaction.description} | @staff:${activeStaff.name}`
       : transaction.description;
 
     const toastId = toast.loading('جاري تسجيل الحركة المالية...');
