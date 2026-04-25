@@ -54,6 +54,15 @@ CREATE TABLE transactions (
     date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Agency Staff (POS Mode Users)
+CREATE TABLE agency_staff (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    pin VARCHAR(4) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ==========================================
 -- 2. Row Level Security (RLS) Policies
 -- ==========================================
@@ -64,6 +73,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agency_staff ENABLE ROW LEVEL SECURITY;
 
 -- Helper Function: Get current user's agency_id
 CREATE OR REPLACE FUNCTION get_current_agency_id()
@@ -125,6 +135,10 @@ CREATE POLICY "Only Admins can update transactions" ON transactions
     FOR UPDATE USING (agency_id = get_current_agency_id() AND get_current_user_role() = 'admin');
 CREATE POLICY "Only Admins can delete transactions" ON transactions
     FOR DELETE USING (agency_id = get_current_agency_id() AND get_current_user_role() = 'admin');
+
+-- Policies for Agency Staff
+CREATE POLICY "Agency isolation for staff" ON agency_staff
+    FOR ALL USING (agency_id = get_current_agency_id());
 
 
 

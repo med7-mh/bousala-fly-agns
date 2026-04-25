@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore, TransactionType } from '../store/useStore';
-import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
+import { formatCurrency, parseDescriptionWithStaff, cn } from '../lib/utils';
 import { t } from '../lib/translations';
 import { 
   FileText, 
@@ -9,7 +9,9 @@ import {
   ReceiptText, 
   ArrowDownCircle, 
   ArrowUpCircle,
-  Clock
+  Clock,
+  Printer,
+  Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -66,6 +68,24 @@ export default function Dashboard() {
     });
 
     setIsModalOpen(false);
+  };
+
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    if (window !== window.top) {
+      toast('لتتمكن من الطباعة بنجاح، يرجى فتح التطبيق في نافذة جديدة باستخدام الزر (Open App in New Tab) ↗️', { duration: 6000, icon: '💡' });
+    }
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
+
+  const handleDownloadPDF = () => {
+    toast('لتحميل الملف، يرجى اختيار "حفظ بتنسيق PDF" (Save as PDF) من نافذة الطباعة التي ستظهر الآن.', { duration: 5000, icon: '📄' });
+    setTimeout(() => {
+         handlePrint();
+    }, 1500);
   };
 
   return (
@@ -151,9 +171,25 @@ export default function Dashboard() {
       </div>
 
       {/* Daily Ledger Details */}
-      <section className="bg-white rounded-xl border border-slate-200 flex flex-col flex-1 min-h-[300px]">
+      <section ref={printRef} className="print-section bg-white rounded-xl border border-slate-200 flex flex-col flex-1 min-h-[300px]">
         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
-          <h3 className="font-bold text-slate-800 text-[15px]">{t('daily_transactions', language)}</h3>
+          <h3 className="font-bold text-slate-800 text-[15px]">{t('daily_transactions', language)} <span className="no-print mx-2 text-slate-400">({selectedDate})</span></h3>
+          <div className="flex items-center gap-2 no-print">
+            <button 
+              onClick={handlePrint}
+              className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-slate-200 bg-white shadow-sm"
+              title="طباعة (Print)"
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={handleDownloadPDF}
+              className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-slate-200 bg-white shadow-sm"
+              title="تحميل كملف PDF"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto p-4">
           {dailyTransactions.length > 0 ? (

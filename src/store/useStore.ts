@@ -79,9 +79,9 @@ interface AppState {
   // Local Staff (POS Mode)
   staffMembers: LocalStaff[];
   activeStaff: LocalStaff | null;
-  loadStaffList: () => void;
-  addStaff: (name: string, pin: string) => void;
-  removeStaff: (name: string) => void;
+  loadStaffList: () => Promise<void>;
+  addStaff: (name: string, pin: string) => Promise<void>;
+  removeStaff: (name: string) => Promise<void>;
   setActiveStaff: (staff: LocalStaff | null) => void;
   
   // Auth
@@ -120,40 +120,64 @@ export const useStore = create<AppState>((set, get) => ({
   staffMembers: [],
   activeStaff: null,
 
-  loadStaffList: () => {
+  loadStaffList: async () => {
     const { user } = get();
     if (!user) return;
     try {
-      const stored = localStorage.getItem(`staff_${user.agency_id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Handle migration from old Array of strings to Array of LocalStaff objects
-        const migrated = parsed.map((item: any) => 
-          typeof item === 'string' ? { name: item, pin: '0000' } : item
-        );
-        set({ staffMembers: migrated });
+      const { data, error } = await supabase
+        .from('agency_staff')
+        .select('*')
+        .order('created_at', { ascending: true });
+        
+      if (!error && data) {
+         set({ staffMembers: data });
+      } else {
+        const stored = localStorage.getItem(`staff_${user.agency_id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const migrated = parsed.map((item: any) => 
+            typeof item === 'string' ? { name: item, pin: '0000' } : item
+          );
+          set({ staffMembers: migrated });
+        }
       }
     } catch { }
   },
 
-  addStaff: (name: string, pin: string) => {
+  addStaff: async (name: string, pin: string) => {
     const { user, staffMembers } = get();
     if (!user || staffMembers.length >= 3) {
       toast.error('لا يمكن إضافة أكثر من 3 موظفين');
       return;
     }
     if (staffMembers.some(s => s.name === name)) return;
-    const newList = [...staffMembers, { name, pin }];
-    localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
+    
+    const { data, error } = await supabase
+      .from('agency_staff')
+      .insert([{ agency_id: user.agency_id, name, pin }])
+      .select()
+      .single();
+
+    let newList;
+    if (error) {
+       newList = [...staffMembers, { name, pin }];
+       localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
+    } else {
+       newList = [...staffMembers, data];
+    }
     set({ staffMembers: newList });
     toast.success('تم إضافة الموظف بنجاح');
   },
 
-  removeStaff: (name: string) => {
+  removeStaff: async (name: string) => {
     const { user, staffMembers, activeStaff } = get();
     if (!user) return;
+    
+    await supabase.from('agency_staff').delete().eq('name', name).eq('agency_id', user.agency_id);
+    
     const newList = staffMembers.filter(s => s.name !== name);
     localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
+    
     set({ 
       staffMembers: newList,
       activeStaff: activeStaff?.name === name ? null : activeStaff 
