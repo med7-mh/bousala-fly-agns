@@ -16,8 +16,16 @@ import {
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
-  const { transactions, addTransaction, language } = useStore();
+  const { transactions, addTransaction, language, activeStaff, staffMembers, user } = useStore();
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedStaffName, setSelectedStaffName] = useState<string>('all');
+
+  // Enforce staff constraint
+  React.useEffect(() => {
+    if (activeStaff?.role === 'staff') {
+      setSelectedStaffName(activeStaff.name);
+    }
+  }, [activeStaff]);
 
   // Quick Action Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,10 +35,21 @@ export default function Dashboard() {
   const [description, setDescription] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
 
-  // Filter Transactions by Selected Date
+  // Filter Transactions by Selected Date and Staff
   const dailyTransactions = transactions.filter(t => {
     const tDate = new Date(t.date).toISOString().split('T')[0];
-    return tDate === selectedDate;
+    if (tDate !== selectedDate) return false;
+    
+    // Admin/Manager filtering
+    if (selectedStaffName !== 'all') {
+      const { staffName } = parseDescriptionWithStaff(t.description);
+      if (selectedStaffName === 'admin') {
+        if (staffName) return false;
+      } else {
+        if (staffName !== selectedStaffName) return false;
+      }
+    }
+    return true;
   });
 
   const totalIncome = dailyTransactions
@@ -96,12 +115,27 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-800">{t('daily_journal', language)}</h1>
           <p className="text-sm text-slate-500 mt-1">{t('daily_journal_desc', language)}</p>
         </div>
-        <input 
-          type="date" 
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        />
+        <div className="flex items-center gap-3">
+          {(!activeStaff || activeStaff.role === 'manager') && staffMembers.length > 0 && (
+            <select
+              value={selectedStaffName}
+              onChange={(e) => setSelectedStaffName(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="all">كل العمليات</option>
+              {staffMembers.map(staff => (
+                <option key={staff.name} value={staff.name}>{staff.name}</option>
+              ))}
+              <option value="admin">المدير فقط</option>
+            </select>
+          )}
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
       </div>
 
       {/* POS Quick Buttons */}

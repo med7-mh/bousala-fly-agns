@@ -4,7 +4,7 @@ import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
 import { Plus, Search, Filter, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Bookings() {
-  const { bookings, customers, suppliers, addBooking, updateBooking, deleteBooking, updateBookingStatus, addTransaction, language } = useStore();
+  const { bookings, customers, suppliers, addBooking, updateBooking, deleteBooking, updateBookingStatus, addTransaction, language, activeStaff } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +30,15 @@ export default function Bookings() {
     }
   }, [editingBooking]);
 
-  const filteredBookings = bookings.filter(b => {
+  const visibleBookings = bookings.filter(b => {
+    if (activeStaff?.role === 'staff') {
+      const { staffName } = parseDescriptionWithStaff(b.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
+
+  const filteredBookings = visibleBookings.filter(b => {
     const customer = customers.find(c => c.id === b.customer_id);
     return customer?.name.includes(searchTerm) || b.description.includes(searchTerm);
   });

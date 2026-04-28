@@ -60,6 +60,7 @@ CREATE TABLE agency_staff (
     agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     pin VARCHAR(4) NOT NULL,
+    role VARCHAR(50) DEFAULT 'staff' CHECK (role IN ('manager', 'staff')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

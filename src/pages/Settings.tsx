@@ -10,14 +10,16 @@ interface Profile extends User {} // reuse user type
 export default function Settings() {
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPin, setNewStaffPin] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState<'manager' | 'staff'>('staff');
   const { user, transactions, bookings, language, staffMembers, addStaff, removeStaff } = useStore();
 
   const handleAddLocalStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (newStaffName.trim() && newStaffPin.length === 4) {
-      addStaff(newStaffName.trim(), newStaffPin);
+      addStaff(newStaffName.trim(), newStaffPin, newStaffRole);
       setNewStaffName('');
       setNewStaffPin('');
+      setNewStaffRole('staff');
     } else if (newStaffPin.length !== 4) {
       toast.error('الرمز السري يجب أن يكون 4 أرقام');
     }
@@ -135,45 +137,56 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="text-[17px] font-bold text-slate-800">نقاط البيع (موظفي الحساب الحالي)</h2>
-                <p className="text-[12px] text-slate-500 mt-1">أضف حتى 3 موظفين للعمل على نفس هذا الجهاز.</p>
+                <p className="text-[12px] text-slate-500 mt-1">أضف موظفين للحساب الحالي للعمل على نقاط البيع وتحديد صلاحياتهم.</p>
               </div>
             </div>
             
             <div className="flex flex-col gap-4">
-              <form onSubmit={handleAddLocalStaff} className="flex flex-col gap-2">
-                <div className="flex gap-2">
+              <form onSubmit={handleAddLocalStaff} className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input 
                     type="text" 
                     value={newStaffName}
                     onChange={(e) => setNewStaffName(e.target.value)}
                     placeholder="اسم الموظف..."
-                    disabled={staffMembers.length >= 3}
                     className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm disabled:bg-slate-50" 
                   />
+                  <select
+                    value={newStaffRole}
+                    onChange={(e) => setNewStaffRole(e.target.value as 'manager' | 'staff')}
+                    className="w-full sm:w-auto px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+                  >
+                    <option value="staff">موظف عادي</option>
+                    <option value="manager">مدير موظفين</option>
+                  </select>
                   <input 
                     type="password"
                     maxLength={4}
                     value={newStaffPin}
                     onChange={(e) => setNewStaffPin(e.target.value.replace(/\D/g, ''))}
                     placeholder="الرمز 4 أرقام"
-                    disabled={staffMembers.length >= 3}
-                    className="w-32 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm tracking-widest text-center disabled:bg-slate-50" 
+                    className="w-full sm:w-32 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm tracking-widest text-center disabled:bg-slate-50" 
                   />
                 </div>
                 <button 
                   type="submit" 
-                  disabled={staffMembers.length >= 3 || !newStaffName.trim() || newStaffPin.length !== 4}
+                  disabled={!newStaffName.trim() || newStaffPin.length !== 4}
                   className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:bg-slate-300 transition-colors"
                 >
-                  إضافة ({staffMembers.length}/3)
+                  إضافة موظف
                 </button>
               </form>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 mt-2">
                 {staffMembers.map((staff, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-slate-50">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-700">{staff.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-700">{staff.name}</span>
+                        {staff.role === 'manager' && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">مدير موظفين</span>
+                        )}
+                      </div>
                       <span className="text-[10px] text-slate-400">الرمز: ****</span>
                     </div>
                     <button 

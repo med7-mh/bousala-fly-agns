@@ -5,7 +5,7 @@ import { t, translateCategory } from '../lib/translations';
 import { Plus, Search, Filter, Receipt, Coffee, Zap, Building, Car, Briefcase, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Expenses() {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction, language } = useStore();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, language, activeStaff } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -13,7 +13,15 @@ export default function Expenses() {
   const [expenseToDelete, setExpenseToDelete] = useState<Transaction | null>(null);
 
   // Filter only operating expenses
-  const operatingExpenses = transactions.filter(t => t.type === 'operating_expense');
+  const allOperatingExpenses = transactions.filter(t => t.type === 'operating_expense');
+
+  const operatingExpenses = allOperatingExpenses.filter(t => {
+    if (activeStaff?.role === 'staff') {
+      const { staffName } = parseDescriptionWithStaff(t.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
 
   const filteredExpenses = operatingExpenses.filter(t => 
     t.description.includes(searchTerm) || (t.payment_method || '').includes(searchTerm)

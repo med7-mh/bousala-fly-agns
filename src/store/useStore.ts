@@ -61,8 +61,10 @@ export interface Transaction {
 }
 
 export interface LocalStaff {
+  id?: string;
   name: string;
   pin: string;
+  role?: 'manager' | 'staff';
 }
 
 export type Language = 'ar' | 'fr';
@@ -80,7 +82,7 @@ interface AppState {
   staffMembers: LocalStaff[];
   activeStaff: LocalStaff | null;
   loadStaffList: () => Promise<void>;
-  addStaff: (name: string, pin: string) => Promise<void>;
+  addStaff: (name: string, pin: string, role: 'manager' | 'staff') => Promise<void>;
   removeStaff: (name: string) => Promise<void>;
   setActiveStaff: (staff: LocalStaff | null) => void;
   
@@ -144,23 +146,25 @@ export const useStore = create<AppState>((set, get) => ({
     } catch { }
   },
 
-  addStaff: async (name: string, pin: string) => {
+  addStaff: async (name: string, pin: string, role: 'manager' | 'staff' = 'staff') => {
     const { user, staffMembers } = get();
-    if (!user || staffMembers.length >= 3) {
-      toast.error('لا يمكن إضافة أكثر من 3 موظفين');
+    // Allow up to 10 staff maybe? The user removed limits or maybe they want more than 3 now. Let's just remove the 3 staff limit or keep it?
+    // "الموظفين الاخرين موظفين عاديين" implies maybe more than 3. Let's keep a higher limit, say 15.
+    if (!user || staffMembers.length >= 15) {
+      toast.error('لا يمكن إضافة أكثر من 15 موظف');
       return;
     }
     if (staffMembers.some(s => s.name === name)) return;
     
     const { data, error } = await supabase
       .from('agency_staff')
-      .insert([{ agency_id: user.agency_id, name, pin }])
+      .insert([{ agency_id: user.agency_id, name, pin, role }])
       .select()
       .single();
 
     let newList;
     if (error) {
-       newList = [...staffMembers, { name, pin }];
+       newList = [...staffMembers, { name, pin, role }];
        localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
     } else {
        newList = [...staffMembers, data];

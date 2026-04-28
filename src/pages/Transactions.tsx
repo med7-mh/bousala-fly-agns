@@ -6,7 +6,7 @@ import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Wallet, Landmark, S
 import toast from 'react-hot-toast';
 
 export default function Transactions() {
-  const { transactions, bookings, customers, suppliers, addTransaction, updateTransaction, deleteTransaction, language } = useStore();
+  const { transactions, bookings, customers, suppliers, addTransaction, updateTransaction, deleteTransaction, language, activeStaff } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,15 +24,24 @@ export default function Transactions() {
     }
   }, [editingTransaction]);
 
-  const filteredTransactions = transactions.filter(t => 
+  // If the user is a normal staff, they should only see their own transactions. Manager / Admin sees all.
+  const visibleTransactions = transactions.filter(t => {
+    if (activeStaff?.role === 'staff') {
+      const { staffName } = parseDescriptionWithStaff(t.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
+
+  const filteredTransactions = visibleTransactions.filter(t => 
     t.description.includes(searchTerm)
   );
 
-  const totalIncome = transactions
+  const totalIncome = visibleTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpense = transactions
+  const totalExpense = visibleTransactions
     .filter(t => t.type === 'expense' || t.type === 'operating_expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -46,7 +55,7 @@ export default function Transactions() {
   ];
 
   const getBalanceByMethod = (method: string) => {
-    const methodTxs = transactions.filter(t => t.payment_method === method || (!t.payment_method && method === 'cash'));
+    const methodTxs = visibleTransactions.filter(t => t.payment_method === method || (!t.payment_method && method === 'cash'));
     const income = methodTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const expense = methodTxs.filter(t => t.type === 'expense' || t.type === 'operating_expense').reduce((sum, t) => sum + t.amount, 0);
     return income - expense;
