@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore, TransactionType } from '../store/useStore';
 import { formatCurrency, parseDescriptionWithStaff, cn } from '../lib/utils';
 import { t } from '../lib/translations';
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const { transactions, addTransaction, language, activeStaff, staffMembers, user } = useStore();
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedStaffName, setSelectedStaffName] = useState<string>('all');
+  const navigate = useNavigate();
 
   // Enforce staff constraint
   React.useEffect(() => {
@@ -162,7 +164,7 @@ export default function Dashboard() {
           </button>
 
           <button 
-            onClick={() => openQuickAction(t('visa', language), 'income', 500, t('visa', language))}
+            onClick={() => navigate('/bookings', { state: { openAddModalWith: 'visa' }})}
             className="bg-white border hover:border-emerald-500 border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all hover:shadow-md group"
           >
             <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform mb-1">

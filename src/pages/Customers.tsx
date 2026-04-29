@@ -16,6 +16,8 @@ export default function Customers() {
   const filteredCustomers = customers.filter(c => 
     c.name.includes(searchTerm) || 
     c.phone.includes(searchTerm) || 
+    (c.national_id && c.national_id.includes(searchTerm)) ||
+    (c.passport_number && c.passport_number.includes(searchTerm)) ||
     c.email.includes(searchTerm)
   );
 
@@ -36,6 +38,8 @@ export default function Customers() {
       name: formData.get('name') as string,
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
+      national_id: formData.get('national_id') as string,
+      passport_number: formData.get('passport_number') as string,
       notes: formData.get('notes') as string,
     };
 
@@ -63,7 +67,7 @@ export default function Customers() {
           <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="ابحث عن عميل بالاسم، الجوال، الايميل..."
+            placeholder="ابحث الاسم، الجوال، الرقم الوطني والجواز..."
             className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -171,6 +175,14 @@ export default function Customers() {
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الجوال</label>
                 <input defaultValue={editingCustomer?.phone} required name="phone" type="tel" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">الرقم الوطني (إختياري)</label>
+                <input defaultValue={editingCustomer?.national_id} name="national_id" type="text" dir="ltr" placeholder="يمكن مسحه بالباركود..." className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الجواز (إختياري)</label>
+                <input defaultValue={editingCustomer?.passport_number} name="passport_number" type="text" dir="ltr" placeholder="يمكن مسحه بالباركود..." className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">البريد الإلكتروني</label>

@@ -25,6 +25,8 @@ CREATE TABLE customers (
     name VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
     email VARCHAR(255),
+    national_id VARCHAR(50),
+    passport_number VARCHAR(50),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -51,7 +53,20 @@ CREATE TABLE transactions (
     amount DECIMAL(12, 2) NOT NULL,
     description TEXT,
     payment_method VARCHAR(50),
+    employee_id UUID REFERENCES employees(id) ON DELETE SET NULL,
     date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Employees Table
+CREATE TABLE employees (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    position VARCHAR(255),
+    phone VARCHAR(50),
+    salary DECIMAL(12, 2) DEFAULT 0,
+    join_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Agency Staff (POS Mode Users)
@@ -75,6 +90,7 @@ ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agency_staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 
 -- Helper Function: Get current user's agency_id
 CREATE OR REPLACE FUNCTION get_current_agency_id()
@@ -139,6 +155,10 @@ CREATE POLICY "Only Admins can delete transactions" ON transactions
 
 -- Policies for Agency Staff
 CREATE POLICY "Agency isolation for staff" ON agency_staff
+    FOR ALL USING (agency_id = get_current_agency_id());
+
+-- Policies for Employees
+CREATE POLICY "Agency isolation for employees" ON employees
     FOR ALL USING (agency_id = get_current_agency_id());
 
 

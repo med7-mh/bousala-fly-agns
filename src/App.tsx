@@ -15,6 +15,7 @@ const Transactions = lazy(() => import('./pages/Transactions'));
 const Suppliers = lazy(() => import('./pages/Suppliers'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Employees = lazy(() => import('./pages/Employees'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 
@@ -148,6 +149,7 @@ export default function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="customers" element={<Customers />} />
                 <Route path="suppliers" element={<Suppliers />} />
+                <Route path="employees" element={<Employees />} />
                 <Route path="bookings" element={<Bookings />} />
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="expenses" element={<Expenses />} />

@@ -6,6 +6,7 @@ export const translations = {
     cashier: 'الخزينة والحسابات',
     expenses: 'المصروفات',
     suppliers: 'الموردين',
+    employees: 'الموظفين والعمال',
     settings: 'الإعدادات',
     logout: 'تسجيل الخروج',
     
@@ -154,6 +155,7 @@ export const translations = {
     cashier: 'Trésorerie',
     expenses: 'Dépenses',
     suppliers: 'Fournisseurs',
+    employees: 'Employés',
     settings: 'Paramètres',
     logout: 'Déconnexion',
 

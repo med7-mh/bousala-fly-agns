@@ -23,12 +23,24 @@ export interface Supplier {
   notes: string;
 }
 
+export interface Employee {
+  id: string;
+  agency_id: string;
+  name: string;
+  position: string;
+  phone: string;
+  salary: number;
+  join_date: string;
+}
+
 export interface Customer {
   id: string;
   agency_id: string;
   name: string;
   phone: string;
   email: string;
+  national_id?: string;
+  passport_number?: string;
   notes: string;
 }
 
@@ -57,6 +69,7 @@ export interface Transaction {
   amount: number;
   description: string;
   payment_method?: string;
+  employee_id?: string;
   date: string;
 }
 
@@ -73,6 +86,7 @@ interface AppState {
   user: User | null;
   customers: Customer[];
   suppliers: Supplier[];
+  employees: Employee[];
   bookings: Booking[];
   transactions: Transaction[];
   isLoading: boolean;
@@ -95,12 +109,15 @@ interface AppState {
   fetchData: () => Promise<void>;
   
   // Mutations
-  addCustomer: (customer: Omit<Customer, 'id' | 'agency_id'>) => Promise<void>;
+  addCustomer: (customer: Omit<Customer, 'id' | 'agency_id'>) => Promise<Customer | undefined>;
   updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
   addSupplier: (supplier: Omit<Supplier, 'id' | 'agency_id'>) => Promise<void>;
   updateSupplier: (id: string, updates: Partial<Supplier>) => Promise<void>;
   deleteSupplier: (id: string) => Promise<void>;
+  addEmployee: (employee: Omit<Employee, 'id' | 'agency_id' | 'created_at'>) => Promise<void>;
+  updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
+  deleteEmployee: (id: string) => Promise<void>;
   addBooking: (booking: Omit<Booking, 'id' | 'agency_id' | 'created_at'>) => Promise<Booking | null>;
   updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
   deleteBooking: (id: string) => Promise<void>;
@@ -114,6 +131,7 @@ export const useStore = create<AppState>((set, get) => ({
   user: null,
   customers: [],
   suppliers: [],
+  employees: [],
   bookings: [],
   transactions: [],
   isLoading: true,
@@ -215,9 +233,10 @@ export const useStore = create<AppState>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const [customersRes, suppliersRes, bookingsRes, txRes] = await Promise.all([
+      const [customersRes, suppliersRes, employeesRes, bookingsRes, txRes] = await Promise.all([
         supabase.from('customers').select('*').order('created_at', { ascending: false }),
         supabase.from('suppliers').select('*').order('created_at', { ascending: false }),
+        supabase.from('employees').select('*').order('created_at', { ascending: false }),
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         supabase.from('transactions').select('*').order('date', { ascending: false }),
       ]);
@@ -225,6 +244,7 @@ export const useStore = create<AppState>((set, get) => ({
       set({
         customers: customersRes.data || [],
         suppliers: suppliersRes.data || [],
+        employees: employeesRes.data || [],
         bookings: bookingsRes.data || [],
         transactions: txRes.data || [],
       });
@@ -237,7 +257,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   addCustomer: async (customer) => {
     const { user } = get();
-    if (!user) return;
+    if (!user) return undefined;
 
     // Toast Loading...
     const toastId = toast.loading('جاري إضافة العميل...');
@@ -251,9 +271,11 @@ export const useStore = create<AppState>((set, get) => ({
     if (!error && data) {
       set((state) => ({ customers: [data, ...state.customers] }));
       toast.success('تمت إضافة العميل بنجاح', { id: toastId });
+      return data;
     } else {
       console.error(error);
       toast.error('حدث خطأ أثناء إضافة العميل', { id: toastId });
+      return undefined;
     }
   },
 
@@ -319,6 +341,49 @@ export const useStore = create<AppState>((set, get) => ({
     } else {
       console.error(error);
       toast.error('حدث خطأ أثناء حذف المورد');
+    }
+  },
+
+  addEmployee: async (employee) => {
+    const { user } = get();
+    if (!user) return;
+
+    const toastId = toast.loading('جاري إضافة الموظف...');
+
+    const { data, error } = await supabase
+      .from('employees')
+      .insert([{ ...employee, agency_id: user.agency_id }])
+      .select()
+      .single();
+
+    if (!error && data) {
+      set((state) => ({ employees: [data, ...state.employees] }));
+      toast.success('تمت إضافة الموظف بنجاح', { id: toastId });
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء إضافة الموظف', { id: toastId });
+    }
+  },
+
+  updateEmployee: async (id, updates) => {
+    const { error } = await supabase.from('employees').update(updates).eq('id', id);
+    if (!error) {
+      set((state) => ({ employees: state.employees.map((e) => (e.id === id ? { ...e, ...updates } : e)) }));
+      toast.success('تم تحديث بيانات الموظف');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء تحديث بيانات الموظف');
+    }
+  },
+
+  deleteEmployee: async (id) => {
+    const { error } = await supabase.from('employees').delete().eq('id', id);
+    if (!error) {
+      set((state) => ({ employees: state.employees.filter((e) => e.id !== id) }));
+      toast.success('تم حذف الموظف');
+    } else {
+      console.error(error);
+      toast.error('حدث خطأ أثناء حذف الموظف');
     }
   },
 

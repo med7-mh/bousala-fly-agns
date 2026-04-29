@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useStore, BookingType, BookingStatus, Booking } from '../store/useStore';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useStore, BookingType, BookingStatus, Booking, Customer } from '../store/useStore';
 import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
 import { Plus, Search, Filter, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Bookings() {
-  const { bookings, customers, suppliers, addBooking, updateBooking, deleteBooking, updateBookingStatus, addTransaction, language, activeStaff } = useStore();
+  const { bookings, customers, suppliers, addBooking, updateBooking, deleteBooking, updateBookingStatus, addTransaction, addCustomer, updateCustomer, language, activeStaff } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -17,16 +20,29 @@ export default function Bookings() {
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [advancePayment, setAdvancePayment] = useState<number>(0);
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState<string>('cash');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+
+  useEffect(() => {
+    if (location.state?.openAddModalWith) {
+      setSelectedType(location.state.openAddModalWith as BookingType);
+      setEditingBooking(null);
+      setIsModalOpen(true);
+      // Clear the state so it doesn't re-trigger on reload
+      navigate('.', { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
     if (editingBooking) {
       setSelectedType(editingBooking.type);
       setCostPrice(editingBooking.cost_price);
       setSellingPrice(editingBooking.selling_price);
+      setSelectedCustomerId(editingBooking.customer_id);
     } else {
       setSelectedType('flight');
       setCostPrice(0);
       setSellingPrice(0);
+      setSelectedCustomerId('');
     }
   }, [editingBooking]);
 
@@ -62,19 +78,48 @@ export default function Bookings() {
     const supplier_id = formData.get('supplier_id') as string;
     const desc = formData.get('description') as string;
     let national_id = formData.get('national_id') as string;
+    let passport_number = formData.get('passport_number') as string;
     let receipt_number = formData.get('receipt_number') as string;
     let expected_date = formData.get('expected_date') as string;
+
+    let customerIdToUse = selectedCustomerId;
     
-    // In edit mode we can just use the provided description or construct a new one.
-    // If it's edit mode we keep the original description if none of the specific fields changed, 
-    // but the easiest is just letting the user edit the raw description text in edit mode if they want.
-    // However, the form defines desc.
+    // Add new customer inline if selected 'new'
+    if (selectedCustomerId === 'new') {
+      const newCustomerName = formData.get('new_customer_name') as string;
+      const newCustomerPhone = formData.get('new_customer_phone') as string;
+      const newCustomer = await addCustomer({
+        name: newCustomerName,
+        phone: newCustomerPhone,
+        email: '',
+        national_id: national_id || undefined,
+        passport_number: passport_number || undefined,
+        notes: ''
+      });
+      if (newCustomer) {
+        customerIdToUse = newCustomer.id;
+      } else {
+        return; // failed to create customer
+      }
+    } else {
+      // Check if we need to update existing customer's passport or national id
+      const existingCustomer = customers.find(c => c.id === customerIdToUse);
+      if (existingCustomer) {
+        const updates: Partial<Customer> = {};
+        if (national_id && existingCustomer.national_id !== national_id) updates.national_id = national_id;
+        if (passport_number && existingCustomer.passport_number !== passport_number) updates.passport_number = passport_number;
+        if (Object.keys(updates).length > 0) {
+          updateCustomer(customerIdToUse, updates);
+        }
+      }
+    }
     
     let finalDescription = desc;
     if (!editingBooking) {
       const parts = [];
-      if (type === 'passport') {
+      if (type === 'passport' || type === 'visa') {
         if (national_id) parts.push(`الرقم الوطني: ${national_id}`);
+        if (passport_number) parts.push(`رقم الجواز: ${passport_number}`);
         if (receipt_number) parts.push(`رقم الإيصال: ${receipt_number}`);
         if (expected_date) parts.push(`موعد الاستلام: ${expected_date}`);
         if (desc) parts.push(`التفاصيل: ${desc}`);
@@ -86,7 +131,7 @@ export default function Bookings() {
     }
 
     const bookingData: Partial<Booking> = {
-      customer_id: formData.get('customer_id') as string,
+      customer_id: customerIdToUse,
       supplier_id: supplier_id || undefined,
       type: type,
       description: finalDescription,
@@ -301,13 +346,34 @@ export default function Bookings() {
             <form onSubmit={handleAddBooking} className="space-y-4">
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">العميل</label>
-                <select defaultValue={editingBooking?.customer_id} required name="customer_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
+                <select 
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  required 
+                  name="customer_id" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
+                >
                   <option value="">اختر العميل...</option>
+                  <option value="new" className="text-emerald-600 font-bold">+ عميل جديد</option>
                   {customers.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
+
+              {selectedCustomerId === 'new' && (
+                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[12px] font-semibold text-emerald-800 mb-1">اسم العميل الجديد</label>
+                    <input required name="new_customer_name" type="text" className="w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-semibold text-emerald-800 mb-1">رقم الجوال</label>
+                    <input required name="new_customer_phone" type="tel" dir="ltr" className="w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع العملية/الحجز</label>
                 <select 
@@ -325,21 +391,48 @@ export default function Bookings() {
                 </select>
               </div>
               
-              {selectedType === 'passport' ? (
+              {(selectedType === 'passport' || selectedType === 'visa') ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[13px] font-semibold text-slate-600 mb-1">الرقم الوطني (NNI)</label>
-                      <input defaultValue={editingBooking?.national_id} name="national_id" type="text" placeholder="مثال: 1234567890" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                      <input 
+                        defaultValue={editingBooking?.national_id || (selectedCustomerId && selectedCustomerId !== 'new' ? customers.find(c => c.id === selectedCustomerId)?.national_id : '')} 
+                        name="national_id" 
+                        type="text" 
+                        placeholder="يمكن مسحه بالباركود" 
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
+                      />
                     </div>
-                    <div>
-                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
-                      <input defaultValue={editingBooking?.receipt_number} name="receipt_number" type="text" placeholder="رقم المعاملة في الإدارة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
-                    </div>
+                    {selectedType === 'visa' ? (
+                      <div>
+                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الجواز</label>
+                        <input 
+                          defaultValue={editingBooking ? '' : (selectedCustomerId && selectedCustomerId !== 'new' ? customers.find(c => c.id === selectedCustomerId)?.passport_number : '')} 
+                          name="passport_number" 
+                          type="text" 
+                          placeholder="يمكن مسحه بالباركود" 
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" 
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
+                        <input defaultValue={editingBooking?.receipt_number} name="receipt_number" type="text" placeholder="رقم المعاملة في الإدارة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">موعد الاستلام المتوقع</label>
-                    <input defaultValue={editingBooking?.expected_date} name="expected_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedType === 'visa' && (
+                      <div>
+                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
+                        <input defaultValue={editingBooking?.receipt_number} name="receipt_number" type="text" placeholder="رقم المعاملة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                      </div>
+                    )}
+                    <div className={selectedType !== 'visa' ? 'col-span-2' : ''}>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{selectedType === 'visa' ? 'مودعد الاستلام' : 'موعد الاستلام المتوقع'}</label>
+                      <input defaultValue={editingBooking?.expected_date} name="expected_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات/وصف إضافي</label>

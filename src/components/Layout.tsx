@@ -45,6 +45,7 @@ export default function Layout() {
   const secondaryNav = [
     { name: t('suppliers', language), href: '/suppliers', icon: Building2 },
     { name: t('expenses', language), href: '/expenses', icon: ReceiptText },
+    { name: 'الموظفين والعمال', href: '/employees', icon: Users },
     ...(user.role === 'admin' ? [{ name: t('settings', language), href: '/settings', icon: Settings }] : []),
   ];
 
