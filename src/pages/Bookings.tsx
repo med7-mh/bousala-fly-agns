@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore, BookingType, BookingStatus, Booking, Customer } from '../store/useStore';
 import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
-import { Plus, Search, Filter, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, AlertTriangle, ScanLine } from 'lucide-react';
+import VisaBookingModal from '../components/VisaBookingModal';
 
 export default function Bookings() {
   const { bookings, customers, suppliers, addBooking, updateBooking, deleteBooking, updateBookingStatus, addTransaction, addCustomer, updateCustomer, language, activeStaff } = useStore();
@@ -11,6 +12,7 @@ export default function Bookings() {
   const navigate = useNavigate();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVisaModalOpen, setIsVisaModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
   
@@ -24,9 +26,13 @@ export default function Bookings() {
 
   useEffect(() => {
     if (location.state?.openAddModalWith) {
-      setSelectedType(location.state.openAddModalWith as BookingType);
-      setEditingBooking(null);
-      setIsModalOpen(true);
+      if (location.state.openAddModalWith === 'visa') {
+        setIsVisaModalOpen(true);
+      } else {
+        setSelectedType(location.state.openAddModalWith as BookingType);
+        setEditingBooking(null);
+        setIsModalOpen(true);
+      }
       // Clear the state so it doesn't re-trigger on reload
       navigate('.', { replace: true, state: {} });
     }
@@ -229,13 +235,22 @@ export default function Bookings() {
             تصفية
           </button>
         </div>
-        <button 
-          onClick={handleOpenAddModal}
-          className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة حجز
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button 
+            onClick={() => setIsVisaModalOpen(true)}
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+          >
+            <ScanLine className="w-4 h-4" />
+            إصدار تأشيرة
+          </button>
+          <button 
+            onClick={handleOpenAddModal}
+            className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة حجز
+          </button>
+        </div>
       </div>
 
       <section className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col">
@@ -594,6 +609,14 @@ export default function Bookings() {
             </div>
           </div>
         </div>
+      )}
+
+      {isVisaModalOpen && (
+        <VisaBookingModal 
+          onClose={() => setIsVisaModalOpen(false)} 
+          language={language}
+          initialScanMode={true}
+        />
       )}
     </div>
   );
