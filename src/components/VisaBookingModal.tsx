@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Search, RefreshCw, ScanLine, UserPlus, CreditCard } from 'lucide-react';
+import { X, Search, RefreshCw, ScanLine, UserPlus, CreditCard, UploadCloud, FileImage } from 'lucide-react';
 import { useStore, Customer, Supplier, Booking } from '../store/useStore';
 import toast from 'react-hot-toast';
+import Tesseract from 'tesseract.js';
 
 interface VisaBookingModalProps {
   onClose: () => void;
@@ -15,6 +16,18 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
   const [mrzInput, setMrzInput] = useState('');
   const [scanMode, setScanMode] = useState(initialScanMode);
   const scanInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // File Upload State
+  const [dragActive, setDragActive] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [manualGivenNames, setManualGivenNames] = useState('');
+  const [manualSurname, setManualSurname] = useState('');
+  const [manualPassport, setManualPassport] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
 
   // Form State
   const [customerId, setCustomerId] = useState('');
@@ -33,10 +46,10 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (scanMode && scanInputRef.current) {
+    if (scanMode && scanInputRef.current && !isAnalyzing) {
       scanInputRef.current.focus();
     }
-  }, [scanMode]);
+  }, [scanMode, isAnalyzing]);
 
   const filteredCustomers = customers.filter(c => 
     c.name.includes(customerSearch) || 
@@ -47,47 +60,182 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
   const visaSuppliers = suppliers; // Should probably filter for visa agents if there was a category
 
   // Fast parsing for MRZ (Machine Readable Zone of Passport TD3)
-  const parseMRZ = (mrzText: string) => {
+  const parseMRZ = (mrzText: string, showError = true) => {
     // 2 lines of 44 chars or 3 lines of 30 or continuous string
     const text = mrzText.replace(/\s+/g, '').toUpperCase();
-    if (text.length >= 88) { // basic TD3 length
-      const line1 = text.substring(0, 44);
-      const line2 = text.substring(44, 88);
+    if (text.length >= 60) { // Tolerate shorter strings for TD1/TD2
       
-      if (line1[0] === 'P') {
-        const nameData = line1.substring(5).split('<<');
-        const surnameRaw = nameData[0] || '';
-        const givenNamesRaw = nameData[1]?.replace(/</g, ' ') || '';
-        const surname = surnameRaw.replace(/</g, ' ');
-        const passportNum = line2.substring(0, 9).replace(/</g, '');
+      // Try to find the start of the P line (Passport) or I/A/C (ID Card)
+      const pIndex = text.search(/[P|I|A|C]/); 
+      
+      if (pIndex !== -1) {
+        // Very basic parsing for demo - in production use a dedicated MRZ library
+        const mrzData = text.substring(pIndex);
         
-        setScannedName(givenNamesRaw.trim());
-        setScannedSurname(surname.trim());
-        setScannedPassport(passportNum);
-        
-        // Check if customer exists
-        const existingCustomer = customers.find(c => c.passport_number === passportNum || c.name.toUpperCase().includes(givenNamesRaw.trim()));
-        if (existingCustomer) {
-          setCustomerId(existingCustomer.id);
-          toast.success('تم العثور على العميل من قاعدة البيانات');
+        let givenNames = '';
+        let surname = '';
+        let passportNum = '';
+
+        if (mrzData[0] === 'P') {
+          // Passport TD3
+          const line1 = mrzData.substring(0, 44);
+          const line2 = mrzData.substring(44, 88);
+          const nameData = line1.substring(5).split('<<');
+          surname = (nameData[0] || '').replace(/</g, ' ').replace(/[^A-Z ]/g, '').trim();
+          givenNames = (nameData[1] || '').replace(/</g, ' ').replace(/[^A-Z ]/g, '').trim();
+          passportNum = line2.substring(0, 9).replace(/</g, '').replace(/O/g, '0');
         } else {
-          setCustomerId('new'); // create new automatically
-          toast.success('جواز سفر جديد - سيتم إنشاء العميل تلقائيا');
+          // ID Card TD1
+          const line1 = mrzData.substring(0, 30);
+          const line2 = mrzData.substring(30, 60);
+          const line3 = mrzData.substring(60, 90);
+          passportNum = line1.substring(5, 14).replace(/</g, '').replace(/O/g, '0');
+          const nameData = line3.split('<<');
+          surname = (nameData[0] || '').replace(/</g, ' ').replace(/[^A-Z ]/g, '').trim();
+          givenNames = (nameData[1] || '').replace(/</g, ' ').replace(/[^A-Z ]/g, '').trim();
         }
         
-        setScanMode(false);
-      } else {
-        toast.error('صيغة جواز السفر غير مدعومة');
+        if (surname || givenNames || passportNum) {
+          setScannedName(givenNames || 'مجهول');
+          setScannedSurname(surname || 'مجهول');
+          setScannedPassport(passportNum || 'غير_معروف');
+          
+          // Check if customer exists
+          const existingCustomer = customers.find(c => 
+            (c.passport_number && passportNum && c.passport_number.includes(passportNum)) || 
+            (c.national_id && passportNum && c.national_id.includes(passportNum)) ||
+            (c.name.toUpperCase().includes(givenNames) && givenNames.length > 2)
+          );
+          
+          if (existingCustomer) {
+            setCustomerId(existingCustomer.id);
+            setCustomerSearch(existingCustomer.name);
+            toast.success('تم العثور على العميل من قاعدة البيانات');
+          } else {
+            setCustomerId('new'); // create new automatically
+            toast.success('تم استخراج البيانات بنجاح - سيتم إنشاء ملف عميل جديد');
+          }
+          
+          setScanMode(false);
+          setMrzInput('');
+          return true; // Success
+        }
       }
-    } else {
-      toast.error('رمز MRZ غير مكتمل، حاول المسح مرة أخرى');
+    }
+    
+    if (showError) {
+      toast.error('لم نتمكن من قراءة البيانات بدقة، يرجى إدخال البيانات يدوياً');
     }
     setMrzInput('');
+    return false; // Failed
   };
 
   const handleMrzKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       parseMRZ(mrzInput);
+    }
+  };
+
+  // --- Drag and Drop File Handlers ---
+  const handleDrag = function(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = function(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImage(e.dataTransfer.files[0]);
+    }
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImage(e.target.files[0]);
+    }
+  };
+
+  const handleImage = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+        toast.error('الرجاء اختيار ملف صورة فقط');
+        return;
+    }
+    
+    setIsAnalyzing(true);
+    setAnalyzeProgress(0);
+    
+    try {
+      const result = await Tesseract.recognize(
+        file,
+        'eng', // MRZ is always in English/Latin characters
+        { 
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setAnalyzeProgress(Math.floor(m.progress * 100));
+            }
+          } 
+        }
+      );
+      
+      const text = result.data.text;
+      
+      // Filter out empty lines and noise, keep lines that look like MRZ
+      const lines = text.split('\n').map(l => l.replace(/\s+/g, '').toUpperCase().replace(/[^A-Z0-9<]/g, '<'));
+      const mrzLines = lines.filter(l => l.length >= 20); // Less strict length check
+      
+      if (mrzLines.length > 0) {
+          // Join them and let parseMRZ find the right offset
+          const combined = mrzLines.join('');
+          parseMRZ(combined, false);
+      } else {
+        // Fallback: Just pass the whole text with spaces removed
+        const combined = text.replace(/\s+/g, '').toUpperCase().replace(/[^A-Z0-9<]/g, '<');
+        const success = parseMRZ(combined, false);
+        
+        if (!success) {
+           // Try extracting a 10 digit number (Saudi ID or Iqama typically starts with 1 or 2)
+           // sometimes O is captured as 0 or vice versa, but regex is simple for now.
+           const textClean = text.replace(/O/g, '0');
+           const idMatch = textClean.match(/\b[12]\d{9}\b/);
+           
+           if (idMatch) {
+             const nationalId = idMatch[0];
+             setIsManualEntry(true);
+             setManualPassport(nationalId);
+             
+             // Check if customer exists by national ID
+             const existingCustomer = customers.find(c => 
+               (c.passport_number && c.passport_number.includes(nationalId)) || 
+               (c.national_id && c.national_id.includes(nationalId))
+             );
+             
+             if (existingCustomer) {
+               setCustomerId(existingCustomer.id);
+               setCustomerSearch(existingCustomer.name);
+               setIsManualEntry(false);
+               toast.success('تم العثور على العميل برقم الهوية');
+             } else {
+               toast.success('تم استخراج رقم الهوية، يرجى إكمال باقي البيانات يدوياً');
+             }
+           } else {
+             toast.error('لم نتمكن من العثور على بيانات واضحة في الصورة، يرجى الإدخال اليدوي');
+             setIsManualEntry(true);
+           }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('حدث خطأ أثناء تحليل الصورة');
+    } finally {
+      setIsAnalyzing(false);
+      setAnalyzeProgress(0);
     }
   };
 
@@ -104,15 +252,24 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
     try {
       let finalCustomerId = customerId;
       
-      // Auto create new customer if scanned
-      if (customerId === 'new') {
-        const customerName = `${scannedName} ${scannedSurname}`.trim();
+      // Auto create new customer if scanned or manual entry
+      if (customerId === 'new' || isManualEntry) {
+        if (isManualEntry && (!manualGivenNames || !manualSurname)) {
+           toast.error('الرجاء إدخال الاسم الأول واسم العائلة');
+           setIsSubmitting(false);
+           return;
+        }
+
+        const customerName = isManualEntry ? `${manualGivenNames} ${manualSurname}`.trim() : `${scannedName} ${scannedSurname}`.trim();
+        const passportNum = isManualEntry ? manualPassport : scannedPassport;
+        const phone = isManualEntry ? manualPhone : '';
+
         const newCust = await addCustomer({
           name: customerName,
-          phone: '',
+          phone: phone,
           email: '',
-          passport_number: scannedPassport,
-          notes: 'Auto-created from scan'
+          passport_number: passportNum,
+          notes: isManualEntry ? 'تم إضافة العميل يدوياً' : 'تم الإنشاء تلقائياً عبر السكانر'
         });
         if (newCust) {
           finalCustomerId = newCust.id;
@@ -165,8 +322,8 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
               <ScanLine className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-bold text-white">إصدار تأشيرة</h3>
-              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">سجل التأشيرة أو امسح جواز السفر للإدخال السريع</p>
+              <h3 className="text-lg sm:text-xl font-bold text-white">إصدار تأشيرة السفر</h3>
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">سجل التأشيرة أو امسح صورة الجواز للإدخال السريع</p>
             </div>
           </div>
           <button 
@@ -178,32 +335,89 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 mb-6 relative">
-            <div className={`p-3 rounded-full ${scanMode ? 'bg-blue-500 text-white animate-pulse' : 'bg-blue-100 text-blue-600'}`}>
-              <ScanLine className="w-8 h-8" />
-            </div>
-            <div className="flex-1 text-center sm:text-right">
-              <h4 className="font-bold text-blue-900 text-lg">سكانر الجوازات (MRZ)</h4>
-              <p className="text-sm text-blue-700">اضغط للتشغيل، ثم قم بتمرير الجواز من خلال السكانر لجمع البيانات.</p>
-            </div>
+          {/* DRAG AND DROP ZONE */}
+          <div 
+            className={`mb-6 p-6 rounded-2xl border-2 border-dashed transition-all duration-200 relative overflow-hidden ${
+              dragActive 
+                ? 'border-blue-500 bg-blue-50 scale-[1.02]' 
+                : isAnalyzing 
+                  ? 'border-emerald-500 bg-emerald-50' 
+                  : scanMode 
+                    ? 'border-purple-400 bg-purple-50'
+                    : 'border-slate-300 bg-slate-100 hover:border-slate-400'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => {
+              if (!isAnalyzing && !scanMode && fileInputRef.current) {
+                fileInputRef.current.click();
+              }
+            }}
+          >
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleFileChange} 
+            />
             
-            <button 
-              onClick={() => { setScanMode(!scanMode); if(!scanMode) setCustomerId(''); }}
-              className={`px-6 py-3 rounded-xl font-bold transition-all shadow-sm ${scanMode ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-            >
-              {scanMode ? 'إيقاف المسح' : 'تشغيل המסح (السكانر)'}
-            </button>
-
-            {/* Hidden Input that captures the rapid scan text */}
+            {/* Hidden Input for direct MRZ scanner keyboard emulation */}
             <input 
               ref={scanInputRef}
               type="text"
               value={mrzInput}
               onChange={(e) => setMrzInput(e.target.value)}
               onKeyDown={handleMrzKeyDown}
-              className={`absolute opacity-0 ${scanMode ? 'w-full h-full inset-0 z-20 cursor-text' : 'w-0 h-0'}`}
+              className={`absolute top-0 right-0 w-1 h-1 opacity-0 ${scanMode ? 'z-20' : '-z-10'}`}
               autoComplete="off"
             />
+
+            {isAnalyzing ? (
+              <div className="flex flex-col items-center justify-center text-emerald-700 py-4">
+                <div className="w-16 h-16 mb-4 relative">
+                  <svg className="animate-spin w-full h-full text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center font-bold text-emerald-600">
+                    {analyzeProgress}%
+                  </div>
+                </div>
+                <h4 className="font-bold text-lg mb-1">جاري تحليل الصورة...</h4>
+                <p className="text-sm opacity-80">يتم استخراج البيانات باستخدام المتصفح (لا تحتاج لإنترنت)</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-center">
+                 <div className="flex gap-4 mb-4">
+                    <div className={`p-4 rounded-full ${scanMode ? 'bg-purple-100 text-purple-600' : 'bg-white shadow text-blue-500'}`}>
+                      <UploadCloud className="w-8 h-8" />
+                    </div>
+                 </div>
+                 <h4 className="font-bold text-slate-800 text-lg mb-1">اسحب وأفلت صورة الجواز هنا</h4>
+                 <p className="text-slate-500 text-sm mb-4">أو انقر لاختيار ملف من جهازك. يدعم (JPG, PNG)</p>
+                 
+                 <div className="flex items-center w-full gap-4">
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">أو للسكانر السريع</span>
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                 </div>
+
+                 <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setScanMode(!scanMode); if(!scanMode) setCustomerId(''); }}
+                  className={`mt-4 px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 ${
+                    scanMode 
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white animate-pulse' 
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <ScanLine className="w-4 h-4" />
+                  {scanMode ? 'وضع القارئ السريع يعمل (جاهز للمسح)...' : 'تفعيل قارئ MRZ السريع (الباركود)'}
+                </button>
+              </div>
+            )}
           </div>
 
           <form id="visa-form" onSubmit={handleSubmit} className="space-y-6">
@@ -247,15 +461,51 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
                       </div>
                     )}
                     
-                    {!customerSearch && !customerId && (
+                    {!customerSearch && !customerId && !isManualEntry && (
                       <div className="text-center p-4 border border-dashed border-slate-300 rounded-lg text-slate-500 text-sm bg-slate-50">
-                        الرجاء اختيار العميل للبدء<br/>أو استخدم السكانر للاستخراج التلقائي
+                        الرجاء اختيار العميل للبدء<br/>أو استخدم إسقاط الصورة للأعلى لاستخراج البيانات
+                        <div className="mt-4 border-t border-slate-200 pt-3">
+                           <button 
+                             type="button" 
+                             onClick={() => setIsManualEntry(true)} 
+                             className="text-blue-600 font-semibold text-sm hover:underline"
+                           >
+                             + إضافة عميل جديد يدوياً
+                           </button>
+                        </div>
                       </div>
+                    )}
+
+                    {isManualEntry && !scannedPassport && (
+                       <div className="space-y-3 bg-blue-50 border border-blue-200 p-4 rounded-xl relative">
+                          <button type="button" onClick={() => setIsManualEntry(false)} className="absolute top-3 left-3 text-slate-500 hover:text-slate-700">
+                             <X className="w-4 h-4" />
+                          </button>
+                          <div className="font-bold text-blue-900 border-b border-blue-200 pb-2 mb-2">إضافة بيانات العميل يدوياً</div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                               <label className="text-xs text-slate-600 block mb-1">الاسم الأول *</label>
+                               <input type="text" placeholder="محمد..." value={manualGivenNames} onChange={e => setManualGivenNames(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" required />
+                            </div>
+                            <div>
+                               <label className="text-xs text-slate-600 block mb-1">اسم العائلة *</label>
+                               <input type="text" placeholder="الغامدي..." value={manualSurname} onChange={e => setManualSurname(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" required />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-600 block mb-1">رقم الجواز / الهوية</label>
+                            <input type="text" placeholder="A12345678" value={manualPassport} onChange={e => setManualPassport(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" dir="ltr" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-600 block mb-1">رقم الجوال</label>
+                            <input type="text" placeholder="0500000000" value={manualPhone} onChange={e => setManualPhone(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" dir="ltr" />
+                          </div>
+                       </div>
                     )}
 
                     {customerId && customerId !== 'new' && (
                       <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg flex justify-between items-center text-sm font-semibold">
-                        <span>العميل المختار: {customerSearch}</span>
+                        <span>العميل: {customerSearch}</span>
                         <button type="button" onClick={() => {setCustomerId(''); setCustomerSearch('');}} className="text-emerald-600 hover:text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded">تغيير</button>
                       </div>
                     )}
@@ -281,7 +531,7 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
                       onClick={() => { setScannedPassport(''); setScannedName(''); setScannedSurname(''); setCustomerId(''); }}
                       className="w-full mt-2 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold rounded-lg text-sm transition-colors"
                     >
-                      إلغاء وإعادة المسح
+                      إلغاء وإعادة المحاولة
                     </button>
                   </div>
                 )}
@@ -398,7 +648,7 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
           <button 
             type="submit" 
             form="visa-form"
-            disabled={!customerId || isSubmitting}
+            disabled={(!customerId && !isManualEntry) || isSubmitting}
             className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
