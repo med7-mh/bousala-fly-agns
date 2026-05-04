@@ -13,13 +13,14 @@ export default function Customers() {
   const [statementCustomer, setStatementCustomer] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.includes(searchTerm) || 
-    c.phone.includes(searchTerm) || 
-    (c.national_id && c.national_id.includes(searchTerm)) ||
-    (c.passport_number && c.passport_number.includes(searchTerm)) ||
-    c.email.includes(searchTerm)
-  );
+  const filteredCustomers = customers.filter(c => {
+    const searchLower = (searchTerm || '').toLowerCase();
+    return (c.name || '').toLowerCase().includes(searchLower) || 
+           (c.phone || '').includes(searchTerm) || 
+           (c.national_id || '').toLowerCase().includes(searchLower) ||
+           (c.passport_number || '').toLowerCase().includes(searchLower) ||
+           (c.email || '').toLowerCase().includes(searchLower);
+  });
 
   const handleOpenAddModal = () => {
     setEditingCustomer(null);

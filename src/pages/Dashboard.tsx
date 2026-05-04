@@ -39,7 +39,13 @@ export default function Dashboard() {
 
   // Filter Transactions by Selected Date and Staff
   const dailyTransactions = transactions.filter(t => {
-    const tDate = new Date(t.date).toISOString().split('T')[0];
+    if (!t.date) return false;
+    let tDate = '';
+    try {
+      tDate = new Date(t.date).toISOString().split('T')[0];
+    } catch(e) {
+      return false; // Skip invalid dates
+    }
     if (tDate !== selectedDate) return false;
     
     // Admin/Manager filtering

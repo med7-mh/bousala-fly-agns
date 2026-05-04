@@ -62,7 +62,9 @@ export default function Bookings() {
 
   const filteredBookings = visibleBookings.filter(b => {
     const customer = customers.find(c => c.id === b.customer_id);
-    return customer?.name.includes(searchTerm) || b.description.includes(searchTerm);
+    const searchLower = (searchTerm || '').toLowerCase();
+    return (customer?.name || '').toLowerCase().includes(searchLower) || 
+           (b.description || '').toLowerCase().includes(searchLower);
   });
 
   const handleOpenAddModal = () => {

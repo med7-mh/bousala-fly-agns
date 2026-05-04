@@ -14,9 +14,12 @@ export default function Employees() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
-  const filteredEmployees = employees.filter(e => 
-    e.name.includes(searchTerm) || e.position?.includes(searchTerm) || e.phone?.includes(searchTerm)
-  );
+  const filteredEmployees = employees.filter(e => {
+    const searchLower = (searchTerm || '').toLowerCase();
+    return (e.name || '').toLowerCase().includes(searchLower) || 
+           (e.position || '').toLowerCase().includes(searchLower) || 
+           (e.phone || '').includes(searchTerm);
+  });
 
   const handleOpenAddModal = () => {
     setEditingEmployee(null);

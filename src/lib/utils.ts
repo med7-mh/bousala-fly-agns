@@ -10,10 +10,11 @@ export const formatCurrency = (amount: number, currencyString: string = 'أوق�
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount) + ' ' + currencyString;
+  }).format(amount || 0) + ' ' + currencyString;
 };
 
 export const parseDescriptionWithStaff = (description: string) => {
+  if (!description) return { text: '', staffName: null };
   const staffMatch = description.match(/ \| @staff:(.+)$/);
   if (staffMatch) {
     return {

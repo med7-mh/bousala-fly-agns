@@ -23,9 +23,11 @@ export default function Expenses() {
     return true;
   });
 
-  const filteredExpenses = operatingExpenses.filter(t => 
-    t.description.includes(searchTerm) || (t.payment_method || '').includes(searchTerm)
-  );
+  const filteredExpenses = operatingExpenses.filter(t => {
+    const searchLower = (searchTerm || '').toLowerCase();
+    return (t.description || '').toLowerCase().includes(searchLower) || 
+           (t.payment_method || '').toLowerCase().includes(searchLower);
+  });
 
   const totalExpense = operatingExpenses.reduce((sum, t) => sum + t.amount, 0);
 

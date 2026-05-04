@@ -12,11 +12,12 @@ export default function Suppliers() {
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [statementSupplier, setStatementSupplier] = useState<Supplier | null>(null);
 
-  const filteredSuppliers = suppliers.filter(s => 
-    s.name.includes(searchTerm) || 
-    s.phone.includes(searchTerm) || 
-    s.email.includes(searchTerm)
-  );
+  const filteredSuppliers = suppliers.filter(s => {
+    const searchLower = (searchTerm || '').toLowerCase();
+    return (s.name || '').toLowerCase().includes(searchLower) || 
+           (s.phone || '').includes(searchTerm) || 
+           (s.email || '').toLowerCase().includes(searchLower);
+  });
 
   const handleOpenAddModal = () => {
     setEditingSupplier(null);

@@ -34,7 +34,7 @@ export default function Transactions() {
   });
 
   const filteredTransactions = visibleTransactions.filter(t => 
-    t.description.includes(searchTerm)
+    (t.description || '').toLowerCase().includes((searchTerm || '').toLowerCase())
   );
 
   const totalIncome = visibleTransactions
