@@ -146,7 +146,36 @@ export const translations = {
     sedad: 'سداد (Sedad)',
     bamis: 'باميس (Bamis)',
     amanty: 'أمانتي (Amanty)',
-    other: 'أخرى'
+    other: 'أخرى',
+    // Additions
+    search_booking: 'ابحث عن حجز...',
+    search_customer: 'ابحث عن عميل بالاسم، الجوال...',
+    search_supplier: 'ابحث عن مورد بالاسم، الجوال...',
+    issue_visa: 'إصدار تأشيرة',
+    booking_date: 'التاريخ',
+    booking_number: 'رقم الحجز',
+    customer: 'العميل',
+    cost: 'التكلفة',
+    selling_price: 'سعر البيع',
+    profit: 'الربح',
+    actions: 'إجراءات',
+    new_customer: '+ عميل جديد',
+    customer_name: 'اسم العميل',
+    phone_number: 'رقم الجوال',
+    national_id: 'الرقم الوطني (NNI)',
+    passport_number: 'رقم الجواز',
+    receipt_number: 'رقم الإيصال / الملف',
+    expected_date: 'موعد الاستلام المتوقع',
+    additional_notes: 'ملاحظات/وصف إضافي',
+    flight_details: 'تفاصيل الرحلة/الوصف',
+    pnr: 'رقم الحجز (PNR)',
+    supplier_optional: 'المورد (اختياري)',
+    advance_payment: 'الدفعة المقدمة',
+    profit_indicator: 'الربح المتوقع:',
+    no_suppliers_found: 'لا يوجد موردين',
+    no_customers: 'لا يوجد عملاء',
+    delete_confirmation: 'تأكيد الحذف',
+    cannot_undo: 'هذا الإجراء لا يمكن التراجع عنه.',
   },
   fr: {
     dashboard: 'Journal',
@@ -295,14 +324,44 @@ export const translations = {
     sedad: 'Sedad',
     bamis: 'Bamis',
     amanty: 'Amanty',
-    other: 'Autre'
+    other: 'Autre',
+    // Additions
+    search_booking: 'Rechercher une réservation...',
+    search_customer: 'Rechercher un client...',
+    search_supplier: 'Rechercher un fournisseur...',
+    issue_visa: 'Émettre un Visa',
+    booking_date: 'Date',
+    booking_number: 'Numéro de réservation',
+    customer: 'Client',
+    cost: 'Coût',
+    selling_price: 'Prix de vente',
+    profit: 'Bénéfice',
+    actions: 'Actions',
+    new_customer: '+ Nouveau client',
+    customer_name: 'Nom du client',
+    phone_number: 'Numéro de téléphone',
+    national_id: "Numéro d'identification (NNI)",
+    passport_number: 'Numéro de passeport',
+    receipt_number: 'Numéro de reçu / fichier',
+    expected_date: 'Date prévue',
+    additional_notes: 'Notes supplémentaires',
+    flight_details: 'Détails du vol',
+    pnr: 'PNR',
+    supplier_optional: 'Fournisseur (Optionnel)',
+    advance_payment: 'Paiement anticipé',
+    profit_indicator: 'Bénéfice attendu:',
+    no_suppliers_found: 'Aucun fournisseur',
+    no_customers: 'Aucun client',
+    delete_confirmation: 'Confirmer la suppression',
+    cannot_undo: 'Cette action est irréversible.',
   }
 } as const;
 
-export type TranslationKey = keyof typeof translations.ar;
+export type TranslationKey = keyof typeof translations.ar | string;
 
-export function t(key: TranslationKey, lang: 'ar' | 'fr') {
-  return translations[lang][key] || translations['ar'][key] || key;
+export function t(key: any, lang: 'ar' | 'fr'): string {
+  // @ts-ignore
+  return translations[lang]?.[key] || translations['ar']?.[key] || key;
 }
 
 export function translateCategory(text: string, lang: 'ar' | 'fr') {

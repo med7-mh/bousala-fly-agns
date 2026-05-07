@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore, BookingType, BookingStatus, Booking, Customer } from '../store/useStore';
 import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
+import { t } from '../lib/translations';
 import { Plus, Search, Filter, Edit2, Trash2, AlertTriangle, ScanLine } from 'lucide-react';
 import VisaBookingModal from '../components/VisaBookingModal';
 
@@ -226,7 +227,7 @@ export default function Bookings() {
             <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text"
-              placeholder="ابحث عن حجز..."
+              placeholder={t('search_booking', language)}
               className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -234,7 +235,7 @@ export default function Bookings() {
           </div>
           <button className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full sm:w-auto">
             <Filter className="w-4 h-4" />
-            تصفية
+            {t('filter', language)}
           </button>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -243,14 +244,14 @@ export default function Bookings() {
             className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <ScanLine className="w-4 h-4" />
-            إصدار تأشيرة
+            {t('issue_visa', language)}
           </button>
           <button 
             onClick={handleOpenAddModal}
             className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            إضافة حجز
+            {t('add_booking', language)}
           </button>
         </div>
       </div>
@@ -260,16 +261,16 @@ export default function Bookings() {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">التاريخ</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">رقم الحجز</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">العميل</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">النوع</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الوصف</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">التكلفة</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">سعر البيع</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الربح</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الحالة</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">إجراءات</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('booking_date', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('booking_number', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('customer', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('type', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('description', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('cost', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('selling_price', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('profit', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('status', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('actions', language)}</th>
               </tr>
             </thead>
             <tbody>
@@ -359,10 +360,10 @@ export default function Bookings() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingBooking ? 'تعديل الحجز' : 'إضافة حجز جديد'}</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingBooking ? t('edit', language) : t('add_booking', language)}</h3>
             <form onSubmit={handleAddBooking} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">العميل</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('customer', language)}</label>
                 <select 
                   value={selectedCustomerId}
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
@@ -371,7 +372,7 @@ export default function Bookings() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
                 >
                   <option value="">اختر العميل...</option>
-                  <option value="new" className="text-emerald-600 font-bold">+ عميل جديد</option>
+                  <option value="new" className="text-emerald-600 font-bold">{t('new_customer', language)}</option>
                   {customers.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -381,18 +382,18 @@ export default function Bookings() {
               {selectedCustomerId === 'new' && (
                 <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[12px] font-semibold text-emerald-800 mb-1">اسم العميل الجديد</label>
+                    <label className="block text-[12px] font-semibold text-emerald-800 mb-1">{t('customer_name', language)}</label>
                     <input required name="new_customer_name" type="text" className="w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-semibold text-emerald-800 mb-1">رقم الجوال</label>
+                    <label className="block text-[12px] font-semibold text-emerald-800 mb-1">{t('phone_number', language)}</label>
                     <input required name="new_customer_phone" type="tel" dir="ltr" className="w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع العملية/الحجز</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('transaction_type', language)}</label>
                 <select 
                   required 
                   name="type" 
@@ -412,7 +413,7 @@ export default function Bookings() {
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">الرقم الوطني (NNI)</label>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('national_id', language)}</label>
                       <input 
                         defaultValue={editingBooking?.national_id || (selectedCustomerId && selectedCustomerId !== 'new' ? customers.find(c => c.id === selectedCustomerId)?.national_id : '')} 
                         name="national_id" 
@@ -423,7 +424,7 @@ export default function Bookings() {
                     </div>
                     {selectedType === 'visa' ? (
                       <div>
-                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الجواز</label>
+                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('passport_number', language)}</label>
                         <input 
                           defaultValue={editingBooking ? '' : (selectedCustomerId && selectedCustomerId !== 'new' ? customers.find(c => c.id === selectedCustomerId)?.passport_number : '')} 
                           name="passport_number" 
@@ -434,7 +435,7 @@ export default function Bookings() {
                       </div>
                     ) : (
                       <div>
-                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
+                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('receipt_number', language)}</label>
                         <input defaultValue={editingBooking?.receipt_number} name="receipt_number" type="text" placeholder="رقم المعاملة في الإدارة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                       </div>
                     )}
@@ -442,34 +443,34 @@ export default function Bookings() {
                   <div className="grid grid-cols-2 gap-4">
                     {selectedType === 'visa' && (
                       <div>
-                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الإيصال / الملف</label>
+                        <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('receipt_number', language)}</label>
                         <input defaultValue={editingBooking?.receipt_number} name="receipt_number" type="text" placeholder="رقم المعاملة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                       </div>
                     )}
                     <div className={selectedType !== 'visa' ? 'col-span-2' : ''}>
-                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{selectedType === 'visa' ? 'مودعد الاستلام' : 'موعد الاستلام المتوقع'}</label>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('expected_date', language)}</label>
                       <input defaultValue={editingBooking?.expected_date} name="expected_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات/وصف إضافي</label>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('additional_notes', language)}</label>
                     <input defaultValue={editingBooking ? parseDescriptionWithStaff(editingBooking.description).text : ''} name="description" type="text" placeholder="مثال: استخراج لأول مرة" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                   </div>
                 </>
               ) : (
                 <>
                   <div>
-                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">تفاصيل الرحلة/الوصف</label>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('flight_details', language)}</label>
                     <input defaultValue={editingBooking ? parseDescriptionWithStaff(editingBooking.description).text : ''} required name="description" type="text" placeholder="مثال: رحلة نواكشوط - دكار" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الحجز (PNR)</label>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('pnr', language)}</label>
                       {/* PNR might be in description initially, but not separated. For edit it's fine. */}
                       <input name="pnr" type="text" placeholder="اختياري" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                     </div>
                     <div>
-                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">المورد (اختياري)</label>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('supplier_optional', language)}</label>
                       <select defaultValue={editingBooking?.supplier_id} name="supplier_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                         <option value="">لا يوجد...</option>
                         {suppliers.map(s => (
@@ -482,7 +483,7 @@ export default function Bookings() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">التكلفة (أوقية)</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('cost', language)}</label>
                   <input 
                     required 
                     name="cost_price" 
@@ -495,7 +496,7 @@ export default function Bookings() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">سعر البيع (أوقية)</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('selling_price', language)}</label>
                   <input 
                     required 
                     name="selling_price" 
@@ -511,7 +512,7 @@ export default function Bookings() {
               {/* Profit Indicator */}
               {(sellingPrice > 0 || costPrice > 0) && (
                 <div className={`p-3 rounded-lg text-sm flex justify-between font-bold ${sellingPrice - costPrice >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                  <span>الربح المتوقع:</span>
+                  <span>{t('profit_indicator', language)}</span>
                   <span>{formatCurrency(sellingPrice - costPrice)}</span>
                 </div>
               )}
@@ -519,7 +520,7 @@ export default function Bookings() {
               {!editingBooking && (
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
                   <div>
-                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">الدفعة المقدمة (مقبوضات الكاشير)</label>
+                    <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('advance_payment', language)}</label>
                     <input 
                       type="number" 
                       min="0" 
@@ -532,7 +533,7 @@ export default function Bookings() {
                   </div>
                   {advancePayment > 0 && (
                     <div>
-                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">طريقة الدفع</label>
+                      <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('payment_method', language)}</label>
                       <select
                         value={advancePaymentMethod}
                         onChange={(e) => setAdvancePaymentMethod(e.target.value)}

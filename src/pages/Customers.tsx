@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, Customer } from '../store/useStore';
 import { formatCurrency } from '../lib/utils';
+import { t } from '../lib/translations';
 import { Plus, Search, Mail, Phone, FileText, X, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Customers() {
@@ -212,11 +213,11 @@ export default function Customers() {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl">
             <div className="flex items-center gap-3 text-red-600 mb-4">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-[17px] font-bold">تأكيد الحذف</h3>
+              <h3 className="text-[17px] font-bold">{t('delete_confirmation', language)}</h3>
             </div>
             <p className="text-slate-600 text-sm mb-6">
               هل أنت متأكد من حذف العميل <strong>{customerToDelete.name}</strong>؟<br />
-              <span className="text-[12px] text-slate-500">هذا الإجراء لا يمكن التراجع عنه.</span>
+              <span className="text-[12px] text-slate-500">{t('cannot_undo', language)}</span>
             </p>
             <div className="flex justify-end gap-3">
               <button 
