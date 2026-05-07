@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, RefreshCw, ScanLine, UserPlus, CreditCard, UploadCloud, FileImage } from 'lucide-react';
 import { useStore, Customer, Supplier, Booking } from '../store/useStore';
 import toast from 'react-hot-toast';
-import Tesseract from 'tesseract.js';
+import { GoogleGenAI, Type } from '@google/genai';
 
 interface VisaBookingModalProps {
   onClose: () => void;
@@ -171,71 +171,119 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
     setIsAnalyzing(true);
     setAnalyzeProgress(0);
     
+    // Simulate upload and inference progress
+    let currentProgress = 0;
+    const progressInterval = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 10) + 5;
+      if (currentProgress > 90) currentProgress = 90;
+      setAnalyzeProgress(currentProgress);
+    }, 500);
+    
     try {
-      const result = await Tesseract.recognize(
-        file,
-        'eng', // MRZ is always in English/Latin characters
-        { 
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              setAnalyzeProgress(Math.floor(m.progress * 100));
-            }
-          } 
-        }
-      );
+      const base64EncodeString = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result.split(',')[1]);
+          } else {
+            reject(new Error('Failed to convert to base64'));
+          }
+        };
+        reader.onerror = error => reject(error);
+      });
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        // Note: Using gemini-3-flash-preview as version 1.5 is prohibited by the environment and causes errors
+        model: "gemini-3-flash-preview",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64EncodeString,
+                mimeType: file.type,
+              },
+            },
+            {
+              text: 'Extract the Given Names, Surname, and Document/Passport Number from this ID/Passport. If it is an ID, the Given Names represent the first and middle name, and the Surname represents the last name or family name. Extract exactly as they appear. Also resolve any Arabic names to English if possible, or provide them exactly.',
+            },
+          ],
+        },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              givenNames: {
+                type: Type.STRING,
+                description: "The first names or given names",
+              },
+              surname: {
+                type: Type.STRING,
+                description: "The last name or surname",
+              },
+              documentNumber: {
+                type: Type.STRING,
+                description: "The passport number or national ID number",
+              },
+            },
+            required: ["givenNames", "surname", "documentNumber"]
+          },
+        },
+      });
+
+      let jsonStr = response.text?.trim() || '{}';
+      // Clean up markdown wrapper if present
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
+      }
       
-      const text = result.data.text;
-      
-      // Filter out empty lines and noise, keep lines that look like MRZ
-      const lines = text.split('\n').map(l => l.replace(/\s+/g, '').toUpperCase().replace(/[^A-Z0-9<]/g, '<'));
-      const mrzLines = lines.filter(l => l.length >= 20); // Less strict length check
-      
-      if (mrzLines.length > 0) {
-          // Join them and let parseMRZ find the right offset
-          const combined = mrzLines.join('');
-          parseMRZ(combined, false);
-      } else {
-        // Fallback: Just pass the whole text with spaces removed
-        const combined = text.replace(/\s+/g, '').toUpperCase().replace(/[^A-Z0-9<]/g, '<');
-        const success = parseMRZ(combined, false);
+      const extractedData = JSON.parse(jsonStr);
+
+      const givenNames = extractedData.givenNames?.toUpperCase() || '';
+      const surname = extractedData.surname?.toUpperCase() || '';
+      const passportNum = extractedData.documentNumber?.toUpperCase() || '';
+
+      if (surname || givenNames || passportNum) {
+        setScannedName(givenNames || 'مجهول');
+        setScannedSurname(surname || 'مجهول');
+        setScannedPassport(passportNum || 'غير_معروف');
         
-        if (!success) {
-           // Try extracting a 10 digit number (Saudi ID or Iqama typically starts with 1 or 2)
-           // sometimes O is captured as 0 or vice versa, but regex is simple for now.
-           const textClean = text.replace(/O/g, '0');
-           const idMatch = textClean.match(/\b[12]\d{9}\b/);
-           
-           if (idMatch) {
-             const nationalId = idMatch[0];
-             setIsManualEntry(true);
-             setManualPassport(nationalId);
-             
-             // Check if customer exists by national ID
-             const existingCustomer = customers.find(c => 
-               (c.passport_number && c.passport_number.includes(nationalId)) || 
-               (c.national_id && c.national_id.includes(nationalId))
-             );
-             
-             if (existingCustomer) {
-               setCustomerId(existingCustomer.id);
-               setCustomerSearch(existingCustomer.name);
-               setIsManualEntry(false);
-               toast.success('تم العثور على العميل برقم الهوية');
-             } else {
-               toast.success('تم استخراج رقم الهوية، يرجى إكمال باقي البيانات يدوياً');
-             }
-           } else {
-             toast.error('لم نتمكن من العثور على بيانات واضحة في الصورة، يرجى الإدخال اليدوي');
-             setIsManualEntry(true);
-           }
+        // Check if customer exists
+        const existingCustomer = customers.find(c => 
+          (c.passport_number && passportNum && c.passport_number.includes(passportNum)) || 
+          (c.national_id && passportNum && c.national_id.includes(passportNum)) ||
+          (c.name.toUpperCase().includes(givenNames) && givenNames.length > 2)
+        );
+        
+        if (existingCustomer) {
+          setCustomerId(existingCustomer.id);
+          setCustomerSearch(existingCustomer.name);
+          toast.success('تم العثور على العميل من قاعدة البيانات');
+        } else {
+          setCustomerId('new'); // create new automatically
+          toast.success('تم استخراج البيانات بنجاح - سيتم إنشاء ملف عميل جديد');
         }
+        
+        setScanMode(false);
+      } else {
+        toast.error('لم نتمكن من العثور على بيانات واضحة في الصورة، يرجى الإدخال اليدوي');
+        setIsManualEntry(true);
       }
     } catch (err) {
       console.error(err);
       toast.error('حدث خطأ أثناء تحليل الصورة');
+      setIsManualEntry(true);
     } finally {
-      setIsAnalyzing(false);
-      setAnalyzeProgress(0);
+      clearInterval(progressInterval);
+      setAnalyzeProgress(100);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setAnalyzeProgress(0);
+      }, 600);
     }
   };
 
@@ -377,16 +425,31 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
 
             {isAnalyzing ? (
               <div className="flex flex-col items-center justify-center text-emerald-700 py-4">
-                <div className="w-16 h-16 mb-4 relative">
-                  <svg className="animate-spin w-full h-full text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
+                <div className="w-16 h-16 mb-4 relative drop-shadow-sm">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-emerald-100"
+                      strokeWidth="3"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-emerald-500 transition-all duration-500 ease-out"
+                      strokeDasharray={`${analyzeProgress}, 100`}
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center font-bold text-emerald-600">
+                  <div className="absolute inset-0 flex items-center justify-center font-bold text-emerald-600 text-lg">
                     {analyzeProgress}%
                   </div>
                 </div>
                 <h4 className="font-bold text-lg mb-1">جاري تحليل الصورة...</h4>
-                <p className="text-sm opacity-80">يتم استخراج البيانات باستخدام المتصفح (لا تحتاج لإنترنت)</p>
+                <p className="text-sm opacity-80">يتم استخراج البيانات باستخدام الذكاء الاصطناعي</p>
               </div>
             ) : (
               <div className="flex flex-col items-center text-center">
