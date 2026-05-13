@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, RefreshCw, ScanLine, UserPlus, CreditCard, UploadCloud, FileImage } from 'lucide-react';
 import { useStore, Customer, Supplier, Booking } from '../store/useStore';
 import toast from 'react-hot-toast';
-import { GoogleGenAI, Type } from '@google/genai';
+import { Type } from '@google/genai';
+import { getGeminiClient } from '../lib/gemini';
 
 interface VisaBookingModalProps {
   onClose: () => void;
@@ -193,10 +194,9 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
         reader.onerror = error => reject(error);
       });
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = getGeminiClient();
       const response = await ai.models.generateContent({
-        // Note: Using gemini-3-flash-preview as version 1.5 is prohibited by the environment and causes errors
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: {
           parts: [
             {
