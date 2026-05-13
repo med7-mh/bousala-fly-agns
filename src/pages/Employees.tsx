@@ -105,15 +105,15 @@ export default function Employees() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">الموظفين والعمال</h1>
-          <p className="text-sm text-slate-500 mt-1">تتبع الأجور والرواتب والمصروفات الخاصة بهم</p>
+          <h1 className="text-2xl font-bold text-slate-800">{t('employees_list', language)}</h1>
+          <p className="text-sm text-slate-500 mt-1">{t('employees_desc', language)}</p>
         </div>
         <button 
           onClick={handleOpenAddModal}
           className="flex items-center justify-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl hover:bg-emerald-600 transition-colors shadow-sm"
         >
           <Plus className="w-5 h-5" />
-          <span className="font-medium">إضافة موظف/عامل</span>
+          <span className="font-medium">{t('add_employee', language)}</span>
         </button>
       </div>
 
@@ -122,7 +122,7 @@ export default function Employees() {
           <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="ابحث بالاسم، المسمى الوظيفي، أو الهاتف..."
+            placeholder={t('search_employee', language)}
             className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -151,19 +151,19 @@ export default function Employees() {
               
               <div className="p-5 flex-1 grid grid-cols-2 gap-y-4 text-sm">
                 <div>
-                  <div className="text-slate-400 text-[12px] font-medium mb-1 drop-shadow-sm flex items-center gap-1"><Phone className="w-3 h-3"/> الهاتف</div>
+                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><Phone className="w-3 h-3"/> {t('phone', language)}</div>
                   <div className="font-semibold text-slate-700" dir="ltr">{employee.phone || '-'}</div>
                 </div>
                 <div>
-                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> تاريخ الانضمام</div>
+                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><Calendar className="w-3 h-3"/> {t('join_date', language)}</div>
                   <div className="font-semibold text-slate-700">{employee.join_date ? new Date(employee.join_date).toLocaleDateString('en-GB') : '-'}</div>
                 </div>
                 <div>
-                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><DollarSign className="w-3 h-3"/> الراتب الأساسي</div>
+                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><DollarSign className="w-3 h-3"/> {t('basic_salary', language)}</div>
                   <div className="font-bold text-slate-800">{formatCurrency(employee.salary)}</div>
                 </div>
                 <div>
-                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><Wallet className="w-3 h-3"/> إجمالي المصروف له</div>
+                  <div className="text-slate-400 text-[12px] font-medium mb-1 flex items-center gap-1"><Wallet className="w-3 h-3"/> {t('total_paid_to_employee', language)}</div>
                   <div className="font-bold text-emerald-600">{formatCurrency(paidAmount)}</div>
                 </div>
               </div>
@@ -173,19 +173,19 @@ export default function Employees() {
                   onClick={() => handleOpenPayModal(employee)}
                   className="flex-1 bg-emerald-100 text-emerald-700 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-200 transition-colors"
                 >
-                  صرف مبلغ
+                  {t('pay_amount', language)}
                 </button>
                 <button 
                   onClick={() => handleOpenEditModal(employee)}
                   className="px-3 bg-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
                 >
-                  تعديل
+                  {t('edit', language)}
                 </button>
                 <button 
                   onClick={() => handleDelete(employee.id)}
                   className="px-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
                 >
-                  حذف
+                  {t('delete', language)}
                 </button>
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function Employees() {
 
         {filteredEmployees.length === 0 && (
           <div className="col-span-full bg-white p-8 rounded-xl border border-dashed border-slate-300 text-center text-slate-500">
-            لا يوجد موظفين لعرضهم. قم بإضافة موظف جديد لتبدأ.
+            {t('no_employees', language)}
           </div>
         )}
       </div>
@@ -203,35 +203,35 @@ export default function Employees() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingEmployee ? 'تعديل بيانات الموظف' : 'إضافة موظف/عامل جديد'}</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingEmployee ? t('edit', language) : t('add_employee', language)}</h3>
             <form onSubmit={handleAddEmployee} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">الاسم رباعي</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('employee_name', language)}</label>
                 <input defaultValue={editingEmployee?.name} required name="name" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">المسمى الوظيفي / الدور</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('job_title', language)}</label>
                 <input defaultValue={editingEmployee?.position} name="position" type="text" placeholder="مثال: عامل نظافة، موظف مبيعات..." className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الهاتف</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('phone', language)}</label>
                 <input defaultValue={editingEmployee?.phone} name="phone" type="tel" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">الراتب / الأجر المتفق عليه</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('basic_salary', language)}</label>
                   <input defaultValue={editingEmployee?.salary || 0} required name="salary" type="number" min="0" step="0.01" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">تاريخ الانضمام</label>
+                  <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('join_date', language)}</label>
                   <input defaultValue={editingEmployee?.join_date || new Date().toISOString().split('T')[0]} required name="join_date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
                 </div>
               </div>
               
               <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors">إلغاء</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors">{t('cancel', language)}</button>
                 <button type="submit" className="flex-1 bg-emerald-500 text-white rounded-lg py-2 text-sm font-medium hover:bg-emerald-600 transition-colors">
-                  {editingEmployee ? 'حفظ التعديلات' : 'إضافة الموظف'}
+                  {editingEmployee ? t('save_changes', language) : t('save', language)}
                 </button>
               </div>
             </form>
@@ -244,12 +244,12 @@ export default function Employees() {
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl" dir={language === 'ar' ? 'rtl' : 'ltr'}>
             <div className="mb-4">
-                <h3 className="text-[17px] font-bold text-slate-800">صرف مبلغ / راتب</h3>
+                <h3 className="text-[17px] font-bold text-slate-800">{t('pay_salary', language)}</h3>
                 <p className="text-[13px] text-slate-500 mt-1">للموظف: <span className="font-bold text-slate-700">{selectedEmployee.name}</span></p>
             </div>
             <form onSubmit={handlePaySalary} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">المبلغ المراد صرفه</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('amount_to_pay', language)}</label>
                 <input 
                   type="number" 
                   name="amount"
@@ -262,7 +262,7 @@ export default function Employees() {
               </div>
               
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">طريقة الدفع (الخزينة)</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('payment_method', language)}</label>
                 <select name="payment_method" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white">
                   <option value="cash">نقداً (كاش)</option>
                   <option value="bank_transfer">تحويل بنكي</option>
@@ -271,7 +271,7 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">البيان / الوصف</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('description', language)}</label>
                 <textarea 
                   name="description"
                   required
@@ -293,7 +293,7 @@ export default function Employees() {
                   type="submit" 
                   className="flex-1 bg-emerald-500 text-white rounded-lg py-2 text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
                 >
-                  تأكيد الصرف
+                  {t('confirm_payment', language)}
                 </button>
               </div>
             </form>

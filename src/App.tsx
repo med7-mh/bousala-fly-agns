@@ -7,6 +7,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/PageLoader';
 
 // Lazy loaded components for Code Splitting and faster load times on mobile
+const Landing = lazy(() => import('./pages/Landing'));
+const DownloadPage = lazy(() => import('./pages/Download'));
 const Layout = lazy(() => import('./components/Layout'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Customers = lazy(() => import('./pages/Customers'));
@@ -143,6 +145,8 @@ export default function App() {
         <AuthGuard>
           <Suspense fallback={<PageLoader />}>
             <Routes>
+              <Route path="/landing" element={<Landing />} />
+              <Route path="/download" element={<DownloadPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/" element={<Layout />}>

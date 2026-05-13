@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore, Supplier } from '../store/useStore';
+import { t } from '../lib/translations';
 import { formatCurrency } from '../lib/utils';
 import { Plus, Search, Mail, Phone, FileText, X, Building2, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
@@ -63,7 +64,7 @@ export default function Suppliers() {
           <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="ابحث عن مورد بالاسم، الجوال..."
+            placeholder={t('search_supplier', language)}
             className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -74,7 +75,7 @@ export default function Suppliers() {
           className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          إضافة مورد
+          {t('add_supplier', language)}
         </button>
       </div>
 
@@ -83,12 +84,12 @@ export default function Suppliers() {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">اسم المورد / الشركة</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">رقم التواصل</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">إجمالي المطالبات (علينا)</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">المدفوع لهم</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الرصيد المتبقي (لهم)</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap text-center">إجراءات</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('name', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('phone', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('total_claims', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('paid_to_them', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('remaining_balance', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap text-center">{t('actions', language)}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,21 +137,21 @@ export default function Suppliers() {
                         <button 
                           onClick={() => setStatementSupplier(supplier)}
                           className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
-                          title="كشف حساب مورد"
+                          title={t('supplier_statement', language)}
                         >
                           <FileText className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleOpenEditModal(supplier)}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
-                          title="تعديل المورد"
+                          title={t('edit', language)}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => setSupplierToDelete(supplier)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
-                          title="حذف المورد"
+                          title={t('delete', language)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -162,7 +163,7 @@ export default function Suppliers() {
               {filteredSuppliers.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500">
-                    لا يوجد موردين
+                    {t('no_suppliers_found', language)}
                   </td>
                 </tr>
               )}
@@ -175,30 +176,30 @@ export default function Suppliers() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingSupplier ? t('edit_supplier_title', language) : t('new_supplier_title', language)}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">اسم المورد / الشركة</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('name', language)}</label>
                 <input defaultValue={editingSupplier?.name} required name="name" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم التواصل</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('phone', language)}</label>
                 <input defaultValue={editingSupplier?.phone} name="phone" type="tel" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">البريد الإلكتروني</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('email', language)}</label>
                 <input defaultValue={editingSupplier?.email} name="email" type="email" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('notes', language)}</label>
                 <textarea defaultValue={editingSupplier?.notes} name="notes" rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"></textarea>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                  إلغاء
+                  {t('cancel', language)}
                 </button>
                 <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  {editingSupplier ? 'حفظ التعديلات' : 'حفظ المورد'}
+                  {editingSupplier ? t('save_changes', language) : t('save', language)}
                 </button>
               </div>
             </form>
@@ -241,7 +242,7 @@ export default function Suppliers() {
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto flex flex-col">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-[19px] font-bold text-slate-800">كشف حساب مورد: {statementSupplier.name}</h3>
+              <h3 className="text-[19px] font-bold text-slate-800">{t('supplier_statement', language)}: {statementSupplier.name}</h3>
               <button onClick={() => setStatementSupplier(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -251,8 +252,8 @@ export default function Suppliers() {
               <table className="w-full text-right border-collapse">
                 <thead>
                   <tr>
-                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">التاريخ</th>
-                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">البيان</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('date', language)}</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('description', language)}</th>
                     <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">مدين (لهم)</th>
                     <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">دائن (سددنا)</th>
                   </tr>

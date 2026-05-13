@@ -69,7 +69,7 @@ export default function Customers() {
           <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="ابحث الاسم، الجوال، الرقم الوطني والجواز..."
+            placeholder={t('search_customer', language)}
             className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -80,7 +80,7 @@ export default function Customers() {
           className="w-full sm:w-auto px-4 py-2 bg-emerald-500 text-white border-none rounded-md text-sm font-medium cursor-pointer hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          إضافة عميل
+          {t('add_customer', language)}
         </button>
       </div>
 
@@ -89,12 +89,12 @@ export default function Customers() {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الاسم</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">رقم الجوال</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">إجمالي الحجوزات</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">المسدد مبلغاً</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">الديون المتبقية</th>
-                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap text-center">إجراءات</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('name', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('phone_number_col', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('total_bookings', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('amount_paid', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('remaining_debt', language)}</th>
+                <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap text-center">{t('actions', language)}</th>
               </tr>
             </thead>
             <tbody>
@@ -129,21 +129,21 @@ export default function Customers() {
                         <button 
                           onClick={() => setStatementCustomer(customer)}
                           className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
-                          title="كشف حساب"
+                          title={t('customer_statement', language)}
                         >
                           <FileText className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleOpenEditModal(customer)}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
-                          title="تعديل العميل"
+                          title={t('edit_customer', language)}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => setCustomerToDelete(customer)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
-                          title="حذف العميل"
+                          title={t('delete', language)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -155,7 +155,7 @@ export default function Customers() {
               {filteredCustomers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-slate-500">
-                    لا يوجد عملاء مطابقين للبحث
+                    {t('no_customers', language)}
                   </td>
                 </tr>
               )}
@@ -168,38 +168,38 @@ export default function Customers() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingCustomer ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}</h3>
+            <h3 className="text-[17px] font-bold text-slate-800 mb-4">{editingCustomer ? t('edit_customer_title', language) : t('new_customer_title', language)}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">الاسم الكامل</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('full_name', language)}</label>
                 <input defaultValue={editingCustomer?.name} required name="name" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الجوال</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('phone_number_col', language)}</label>
                 <input defaultValue={editingCustomer?.phone} required name="phone" type="tel" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">الرقم الوطني (إختياري)</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('national_id', language)}</label>
                 <input defaultValue={editingCustomer?.national_id} name="national_id" type="text" dir="ltr" placeholder="يمكن مسحه بالباركود..." className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">رقم الجواز (إختياري)</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('passport_number', language)}</label>
                 <input defaultValue={editingCustomer?.passport_number} name="passport_number" type="text" dir="ltr" placeholder="يمكن مسحه بالباركود..." className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">البريد الإلكتروني</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('email', language)}</label>
                 <input defaultValue={editingCustomer?.email} name="email" type="email" dir="ltr" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm" />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-slate-600 mb-1">ملاحظات</label>
+                <label className="block text-[13px] font-semibold text-slate-600 mb-1">{t('notes', language)}</label>
                 <textarea defaultValue={editingCustomer?.notes} name="notes" rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"></textarea>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                  إلغاء
+                  {t('cancel', language)}
                 </button>
                 <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  {editingCustomer ? 'حفظ التعديلات' : 'حفظ العميل'}
+                  {editingCustomer ? t('save_changes', language) : t('save', language)}
                 </button>
               </div>
             </form>
@@ -241,7 +241,7 @@ export default function Customers() {
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto flex flex-col">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-[19px] font-bold text-slate-800">كشف حساب: {statementCustomer.name}</h3>
+              <h3 className="text-[19px] font-bold text-slate-800">{t('customer_statement', language)}: {statementCustomer.name}</h3>
               <button onClick={() => setStatementCustomer(null)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -251,8 +251,8 @@ export default function Customers() {
               <table className="w-full text-right border-collapse">
                 <thead>
                   <tr>
-                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">التاريخ</th>
-                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">البيان</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('date', language)}</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">{t('description', language)}</th>
                     <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">مدين (قيمة الحجز)</th>
                     <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">دائن (مسدد)</th>
                   </tr>

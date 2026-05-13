@@ -15,7 +15,8 @@ import {
   ReceiptText,
   X,
   Globe,
-  UserCircle
+  UserCircle,
+  Compass
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -32,7 +33,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   const primaryNav = [
@@ -59,8 +60,8 @@ export default function Layout() {
         language === 'ar' ? "border-l" : "border-r"
       )}>
         <div className="flex items-center px-6 pb-8 gap-3">
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-            ب
+          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
+            <Compass className="w-5 h-5" />
           </div>
           <div className="text-[22px] font-extrabold text-emerald-700 tracking-tight">بوصله</div>
         </div>
@@ -103,8 +104,8 @@ export default function Layout() {
         {/* Header */}
         <header className="h-16 md:h-[72px] bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
           <div className="flex items-center gap-3 md:hidden">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-              ب
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
+              <Compass className="w-5 h-5" />
             </div>
             <div className="text-xl font-extrabold text-emerald-700 tracking-tight">بوصله</div>
           </div>
