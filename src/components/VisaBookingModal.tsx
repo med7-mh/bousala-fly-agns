@@ -196,7 +196,7 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
 
       const ai = getGeminiClient();
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash-preview",
         contents: {
           parts: [
             {
@@ -273,9 +273,9 @@ export default function VisaBookingModal({ onClose, language = 'ar', initialScan
         toast.error('لم نتمكن من العثور على بيانات واضحة في الصورة، يرجى الإدخال اليدوي');
         setIsManualEntry(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('حدث خطأ أثناء تحليل الصورة');
+      toast.error('حدث خطأ أثناء تحليل الصورة: ' + (err?.message || 'خطأ غير معروف'));
       setIsManualEntry(true);
     } finally {
       clearInterval(progressInterval);

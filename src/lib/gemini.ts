@@ -8,7 +8,7 @@ let aiClient: GoogleGenAI | null = null;
 export function getGeminiClient(): GoogleGenAI {
   if (!aiClient) {
     // Vite handles VITE_ prefixed environment variables automatically on the client side.
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (process as any).env?.GEMINI_API_KEY;
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? (process as any).env?.GEMINI_API_KEY : undefined);
     
     if (!apiKey) {
       console.warn('Gemini API key is not configured. AI features will be disabled. Please set VITE_GEMINI_API_KEY.');
@@ -26,7 +26,7 @@ export async function generateText(prompt: string): Promise<string> {
   try {
     const ai = getGeminiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     
