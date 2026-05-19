@@ -12,6 +12,10 @@ export interface User {
   agency_id: string;
   name: string;
   role: Role;
+  email?: string;
+  subscriptionPlan?: string;
+  subscriptionExpiresAt?: string | null;
+  agencyCreatedAt?: string;
 }
 
 export interface Supplier {
@@ -107,6 +111,9 @@ interface AppState {
   
   // Fetching
   fetchData: () => Promise<void>;
+  
+  // Subscription
+  isSubscriptionExpired: () => boolean;
   
   // Mutations
   addCustomer: (customer: Omit<Customer, 'id' | 'agency_id'>) => Promise<Customer | undefined>;
@@ -225,6 +232,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   setLanguage: (lang) => set({ language: lang }),
+  
+  isSubscriptionExpired: () => {
+    const { user } = get();
+    if (!user) return true;
+    
+    if (user.subscriptionPlan === 'premium') {
+      if (!user.subscriptionExpiresAt) return false;
+      return new Date(user.subscriptionExpiresAt) < new Date();
+    }
+    
+    // Free plan
+    if (!user.agencyCreatedAt) return false;
+    
+    const createdDate = new Date(user.agencyCreatedAt);
+    const trialEndDate = new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    return new Date() > trialEndDate;
+  },
 
   fetchData: async () => {
     const { user } = get();
@@ -256,8 +281,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addCustomer: async (customer) => {
-    const { user } = get();
+    const { user, isSubscriptionExpired } = get();
     if (!user) return undefined;
+    
+    if (isSubscriptionExpired()) {
+       toast.error('انتهت الفترة التجريبية. يرجى تفعيل الاشتراك لمواصلة إضافة بيانات.');
+       return undefined;
+    }
 
     // Toast Loading...
     const toastId = toast.loading('جاري إضافة العميل...');
@@ -302,8 +332,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addSupplier: async (supplier) => {
-    const { user } = get();
+    const { user, isSubscriptionExpired } = get();
     if (!user) return;
+
+    if (isSubscriptionExpired()) {
+       toast.error('انتهت الفترة التجريبية. يرجى تفعيل الاشتراك لمواصلة إضافة بيانات.');
+       return;
+    }
 
     const toastId = toast.loading('جاري إضافة المورد...');
 
@@ -345,8 +380,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addEmployee: async (employee) => {
-    const { user } = get();
+    const { user, isSubscriptionExpired } = get();
     if (!user) return;
+
+    if (isSubscriptionExpired()) {
+       toast.error('انتهت الفترة التجريبية. يرجى تفعيل الاشتراك لمواصلة إضافة بيانات.');
+       return;
+    }
 
     const toastId = toast.loading('جاري إضافة الموظف...');
 
@@ -388,8 +428,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addBooking: async (booking) => {
-    const { user, activeStaff } = get();
+    const { user, activeStaff, isSubscriptionExpired } = get();
     if (!user) return null;
+
+    if (isSubscriptionExpired()) {
+       toast.error('انتهت الفترة التجريبية. يرجى تفعيل الاشتراك لمواصلة إضافة الحجوزات.');
+       return null;
+    }
 
     const finalDescription = activeStaff 
       ? `${booking.description} | @staff:${activeStaff.name}`
@@ -459,8 +504,13 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addTransaction: async (transaction) => {
-    const { user, activeStaff } = get();
+    const { user, activeStaff, isSubscriptionExpired } = get();
     if (!user) return;
+
+    if (isSubscriptionExpired()) {
+       toast.error('انتهت الفترة التجريبية. يرجى تفعيل الاشتراك لمواصلة تسجيل الحركات.');
+       return;
+    }
 
     const finalDescription = activeStaff
       ? `${transaction.description} | @staff:${activeStaff.name}`

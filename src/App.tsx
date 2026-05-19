@@ -18,6 +18,7 @@ const Suppliers = lazy(() => import('./pages/Suppliers'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Employees = lazy(() => import('./pages/Employees'));
+const AdminCoupons = lazy(() => import('./pages/AdminCoupons'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 
@@ -43,14 +44,23 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         if (session && isSubscribed) {
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*, agencies(created_at, subscription_plan, subscription_expires_at)')
+            .eq('id', session.user.id)
+            .single();
           
           if (data && isSubscribed) {
+            const agencyInfo = Array.isArray(data.agencies) ? data.agencies[0] : (data.agencies as any);
             login({
               id: data.id,
               agency_id: data.agency_id,
               name: data.full_name,
-              role: data.role
+              role: data.role,
+              email: session.user.email,
+              subscriptionPlan: agencyInfo?.subscription_plan || 'free',
+              subscriptionExpiresAt: agencyInfo?.subscription_expires_at || null,
+              agencyCreatedAt: agencyInfo?.created_at || new Date().toISOString(),
             });
           } else if (error && isSubscribed) {
             console.error("Auth Guard Profile Error:", error);
@@ -82,15 +92,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       
       if (session) {
         // Fire and forget, don't block the onAuthStateChange listener
-        supabase.from('profiles').select('*').eq('id', session.user.id).single()
+        supabase.from('profiles').select('*, agencies(created_at, subscription_plan, subscription_expires_at)').eq('id', session.user.id).single()
           .then(({ data, error }) => {
             if (!isSubscribed) return;
             if (data) {
+              const agencyInfo = Array.isArray(data.agencies) ? data.agencies[0] : (data.agencies as any);
               login({
                 id: data.id,
                 agency_id: data.agency_id,
                 name: data.full_name,
-                role: data.role
+                role: data.role,
+                email: session.user.email,
+                subscriptionPlan: agencyInfo?.subscription_plan || 'free',
+                subscriptionExpiresAt: agencyInfo?.subscription_expires_at || null,
+                agencyCreatedAt: agencyInfo?.created_at || new Date().toISOString(),
               });
             } else if (error) {
               console.error("Auth Guard Profile Error on Change:", error);
@@ -158,6 +173,7 @@ export default function App() {
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="expenses" element={<Expenses />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="admin" element={<AdminCoupons />} />
               </Route>
             </Routes>
           </Suspense>

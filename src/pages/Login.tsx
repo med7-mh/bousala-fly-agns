@@ -50,7 +50,7 @@ export default function Login() {
       // 2. Profile Fetch
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, agencies(created_at, subscription_plan, subscription_expires_at)')
         .eq('id', data.user.id)
         .single();
 
@@ -62,11 +62,17 @@ export default function Login() {
         throw profileError;
       }
 
+      const agencyInfo = Array.isArray(profileData.agencies) ? profileData.agencies[0] : (profileData.agencies as any);
+
       login({
         id: profileData.id,
         agency_id: profileData.agency_id,
         name: profileData.full_name,
-        role: profileData.role
+        role: profileData.role,
+        email: data.user.email,
+        subscriptionPlan: agencyInfo?.subscription_plan || 'free',
+        subscriptionExpiresAt: agencyInfo?.subscription_expires_at || null,
+        agencyCreatedAt: agencyInfo?.created_at || new Date().toISOString(),
       });
       
       navigate('/');

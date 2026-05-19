@@ -27,12 +27,94 @@ export default function Settings() {
   };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [reportDate, setReportDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [couponCode, setCouponCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchProfiles();
     }
   }, [user]);
+
+  const handleRedeemCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+
+    setIsRedeeming(true);
+    try {
+      // 1. Validate Coupon
+      const { data: coupon, error: couponError } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode.trim())
+        .single();
+      
+      if (couponError || !coupon) {
+         toast.error('الرمز غير صحيح أو غير موجود');
+         setIsRedeeming(false);
+         return;
+      }
+      if (coupon.is_used) {
+         toast.error('تم استخدام هذا الرمز من قبل');
+         setIsRedeeming(false);
+         return;
+      }
+
+      // Calculate new expiry date based on type
+      let days = 0;
+      if (coupon.type === 'monthly') days = 30;
+      else if (coupon.type === 'yearly') days = 365;
+
+      const currentExpiry = user?.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt) : new Date();
+      // If already expired, start from today
+      const startDate = currentExpiry < new Date() ? new Date() : currentExpiry;
+      const newExpiryDate = new Date(startDate);
+      newExpiryDate.setDate(newExpiryDate.getDate() + days);
+
+      // 2. Update Agency
+      const { error: agencyUpdateError } = await supabase
+        .from('agencies')
+        .update({
+           subscription_plan: 'premium',
+           subscription_expires_at: newExpiryDate.toISOString()
+        })
+        .eq('id', user?.agency_id);
+
+      if (agencyUpdateError) throw agencyUpdateError;
+
+      // 3. Mark coupon as used
+      const { error: markError } = await supabase
+        .from('coupons')
+        .update({
+           is_used: true,
+           used_by_agency: user?.agency_id,
+           used_at: new Date().toISOString()
+        })
+        .eq('id', coupon.id);
+      
+      if (markError) {
+         console.warn("Failed to mark coupon as used:", markError);
+         // not a critical error if agency is already updated but we should handle it
+      }
+
+      toast.success('تم تفعيل الاشتراك بنجاح!');
+      setCouponCode('');
+      
+      // Update local state by forcing a re-login
+      if (user) {
+        useStore.getState().login({
+           ...user,
+           subscriptionPlan: 'premium',
+           subscriptionExpiresAt: newExpiryDate.toISOString()
+        });
+      }
+    } catch (err: any) {
+       console.error("Redeem error:", err);
+       toast.error('حدث خطأ أثناء تفعيل الاشتراك');
+    } finally {
+       setIsRedeeming(false);
+    }
+  };
 
   const fetchProfiles = async () => {
     const { data, error } = await supabase.from('profiles').select('*').eq('agency_id', user?.agency_id);
@@ -85,6 +167,58 @@ export default function Settings() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         <section className="flex flex-col gap-8">
+          {/* Subscription & Coupon */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-fit">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-[17px] font-bold text-slate-800">الاشتراك والباقات</h2>
+                <p className="text-[12px] text-slate-500 mt-1">إدارة اشتراك الوكالة الخاص بك</p>
+              </div>
+            </div>
+            
+            <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row justify-between items-center">
+               <div>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">حالة الاشتراك</h3>
+                  <div className="flex items-center gap-2">
+                     <span className={`inline-flex px-2.5 py-1 rounded-md text-[13px] font-bold ${
+                        user?.subscriptionPlan === 'premium' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                     }`}>
+                        {user?.subscriptionPlan === 'premium' ? 'باقة مدفوعة' : 'باقة مجانية'}
+                     </span>
+                     {user?.subscriptionExpiresAt && (
+                        <span className="text-sm text-slate-500">
+                           صالح حتى: <span className="font-semibold text-slate-700" dir="ltr">{new Date(user.subscriptionExpiresAt).toLocaleDateString('en-GB')}</span>
+                        </span>
+                     )}
+                  </div>
+               </div>
+            </div>
+
+            <form onSubmit={handleRedeemCoupon} className="flex flex-col gap-3">
+               <label className="block text-[13px] font-bold text-slate-700">تفعيل قسيمة اشتراك</label>
+               <div className="flex flex-col sm:flex-row gap-2">
+                 <input 
+                   type="text" 
+                   value={couponCode}
+                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                   placeholder="أدخل الرمز هنا (مثال: BOSLA-ABC1234)" 
+                   className="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                   dir="ltr"
+                 />
+                 <button 
+                   type="submit" 
+                   disabled={!couponCode.trim() || isRedeeming}
+                   className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg font-bold transition-all shrink-0"
+                 >
+                   {isRedeeming ? 'جاري التفعيل...' : 'تفعيل'}
+                 </button>
+               </div>
+            </form>
+          </div>
+
           {/* Real User Management */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-fit">
             <div className="flex items-center gap-3 mb-6">

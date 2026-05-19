@@ -21,12 +21,21 @@ import {
 import { cn } from '../lib/utils';
 
 export default function Layout() {
-  const { user, logout, language, setLanguage, staffMembers, activeStaff, setActiveStaff } = useStore();
+  const { user, logout, language, setLanguage, staffMembers, activeStaff, setActiveStaff, isSubscriptionExpired } = useStore();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pinModalStaff, setPinModalStaff] = useState<any>(null);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  
+  const isExpired = isSubscriptionExpired();
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
+
+  useEffect(() => {
+    if (isExpired) {
+      setShowExpiredModal(true);
+    }
+  }, [isExpired]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -48,6 +57,7 @@ export default function Layout() {
     { name: t('expenses', language), href: '/expenses', icon: ReceiptText },
     { name: 'الموظفين والعمال', href: '/employees', icon: Users },
     ...(user.role === 'admin' ? [{ name: t('settings', language), href: '/settings', icon: Settings }] : []),
+    ...(user.email === '22247071347@bosla.app' ? [{ name: 'إدارة النظام', href: '/admin', icon: Settings }] : []),
   ];
 
   const navigation = [...primaryNav, ...secondaryNav];
@@ -100,7 +110,14 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden w-full relative">
+        {/* Banner */}
+        {isExpired && (
+           <div className="bg-amber-50 border-b border-amber-200 py-2.5 px-4 md:px-8 text-center text-amber-800 text-sm font-medium z-10">
+              عذراً، لقد انتهت الفترة التجريبية. للتجديد ومواصلة العمل، يرجى تفعيل الاشتراك من الإعدادات أو التواصل عبر واتساب على <a href="https://wa.me/22247071310" target="_blank" className="font-bold underline text-amber-900" rel="noreferrer">22247071310</a>.
+           </div>
+        )}
+        
         {/* Header */}
         <header className="h-16 md:h-[72px] bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
           <div className="flex items-center gap-3 md:hidden">
@@ -296,6 +313,44 @@ export default function Layout() {
               >
                 {language === 'ar' ? 'دخول' : 'Entrer'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trial Expired Modal */}
+      {showExpiredModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-xl relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setShowExpiredModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center">
+               <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Briefcase className="w-8 h-8" />
+               </div>
+               <h3 className="text-xl font-bold text-slate-800 mb-2">انتهت الفترة التجريبية</h3>
+               <p className="text-slate-600 mb-6 text-[15px] leading-relaxed">
+                 لقد انتهت فترة الـ 7 أيام التجريبية المجانية. الآن إمكانيات التطبيق مقيدة ولا يمكنك إضافة بيانات جديدة. نرجو تفعيل الاشتراك لمواصلة العمل.
+               </p>
+               
+               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                  <p className="text-sm text-slate-700 font-medium mb-2">للحصول على قسيمة تفعيل، يرجى التواصل عبر يواتساب:</p>
+                  <a href="https://wa.me/22247071310" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors">
+                     22247071310
+                  </a>
+               </div>
+
+               <Link 
+                 to="/settings"
+                 onClick={() => setShowExpiredModal(false)}
+                 className="block w-full text-center bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+               >
+                 إدخال رمز القسيمة
+               </Link>
             </div>
           </div>
         </div>
