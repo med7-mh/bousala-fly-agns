@@ -310,23 +310,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateCustomer: async (id, updates) => {
-    const { error } = await supabase.from('customers').update(updates).eq('id', id);
-    if (!error) {
+    const { user } = get();
+    const { error, data } = await supabase.from('customers').update({ ...updates, agency_id: user?.agency_id }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ customers: state.customers.map((c) => (c.id === id ? { ...c, ...updates } : c)) }));
       toast.success('تم تحديث بيانات العميل');
     } else {
-      console.error(error);
+      console.error(error || 'No rows updated. RLS policy might be blocking.');
       toast.error('حدث خطأ أثناء تحديث بيانات العميل');
     }
   },
 
   deleteCustomer: async (id) => {
-    const { error } = await supabase.from('customers').delete().eq('id', id);
-    if (!error) {
+    const { error, data } = await supabase.from('customers').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ customers: state.customers.filter((c) => c.id !== id) }));
       toast.success('تم حذف العميل');
     } else {
-      console.error(error);
+      console.error(error || 'No rows deleted.');
       toast.error('حدث خطأ أثناء حذف العميل');
     }
   },
@@ -358,23 +359,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateSupplier: async (id, updates) => {
-    const { error } = await supabase.from('suppliers').update(updates).eq('id', id);
-    if (!error) {
+    const { user } = get();
+    const { error, data } = await supabase.from('suppliers').update({ ...updates, agency_id: user?.agency_id }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ suppliers: state.suppliers.map((s) => (s.id === id ? { ...s, ...updates } : s)) }));
       toast.success('تم تحديث بيانات المورد');
     } else {
-      console.error(error);
+      console.error(error || 'No rows updated.');
       toast.error('حدث خطأ أثناء تحديث بيانات المورد');
     }
   },
 
   deleteSupplier: async (id) => {
-    const { error } = await supabase.from('suppliers').delete().eq('id', id);
-    if (!error) {
+    const { error, data } = await supabase.from('suppliers').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ suppliers: state.suppliers.filter((s) => s.id !== id) }));
       toast.success('تم حذف المورد');
     } else {
-      console.error(error);
+      console.error(error || 'No rows deleted.');
       toast.error('حدث خطأ أثناء حذف المورد');
     }
   },
@@ -406,23 +408,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateEmployee: async (id, updates) => {
-    const { error } = await supabase.from('employees').update(updates).eq('id', id);
-    if (!error) {
+    const { user } = get();
+    const { error, data } = await supabase.from('employees').update({ ...updates, agency_id: user?.agency_id }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ employees: state.employees.map((e) => (e.id === id ? { ...e, ...updates } : e)) }));
       toast.success('تم تحديث بيانات الموظف');
     } else {
-      console.error(error);
+      console.error(error || 'No rows updated.');
       toast.error('حدث خطأ أثناء تحديث بيانات الموظف');
     }
   },
 
   deleteEmployee: async (id) => {
-    const { error } = await supabase.from('employees').delete().eq('id', id);
-    if (!error) {
+    const { error, data } = await supabase.from('employees').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ employees: state.employees.filter((e) => e.id !== id) }));
       toast.success('تم حذف الموظف');
     } else {
-      console.error(error);
+      console.error(error || 'No rows deleted.');
       toast.error('حدث خطأ أثناء حذف الموظف');
     }
   },
@@ -460,44 +463,46 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateBooking: async (id, updates) => {
-    const { error } = await supabase.from('bookings').update(updates).eq('id', id);
-    if (!error) {
+    const { user } = get();
+    const { error, data } = await supabase.from('bookings').update({ ...updates, agency_id: user?.agency_id }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ bookings: state.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)) }));
       toast.success('تم تحديث الحجز بنجاح');
     } else {
-      console.error(error);
+      console.error(error || 'No rows updated.');
       toast.error('حدث خطأ أثناء تحديث الحجز');
     }
   },
 
   deleteBooking: async (id) => {
-    const { error } = await supabase.from('bookings').delete().eq('id', id);
-    if (!error) {
+    const { error, data } = await supabase.from('bookings').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ bookings: state.bookings.filter((b) => b.id !== id) }));
       toast.success('تم حذف الحجز بنجاح');
     } else {
-      console.error(error);
+      console.error(error || 'No rows deleted.');
       toast.error('حدث خطأ أثناء حذف الحجز');
     }
   },
 
   updateBookingStatus: async (id, status) => {
     // Optimistic Update
+    const { user } = get();
     const previousBookings = get().bookings;
     set((state) => ({
       bookings: state.bookings.map(b => b.id === id ? { ...b, status } : b)
     }));
 
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('bookings')
-      .update({ status })
-      .eq('id', id);
+      .update({ status, agency_id: user?.agency_id })
+      .eq('id', id).select();
 
-    if (error) {
+    if (error || !data || data.length === 0) {
       // Revert on error
       set({ bookings: previousBookings });
       toast.error('لم يتم تحديث حالة الحجز، حدث خطأ ما!');
-      console.error(error);
+      console.error(error || 'No rows updated.');
     } else {
       toast.success('تم تحديث حالة الحجز');
     }
@@ -542,23 +547,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateTransaction: async (id, updates) => {
-    const { error } = await supabase.from('transactions').update(updates).eq('id', id);
-    if (!error) {
+    const { user } = get();
+    const { error, data } = await supabase.from('transactions').update({ ...updates, agency_id: user?.agency_id }).eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ transactions: state.transactions.map((t) => (t.id === id ? { ...t, ...updates } : t)) }));
       toast.success('تم تحديث الحركة المالية بنجاح');
     } else {
-      console.error(error);
+      console.error(error || 'No rows updated.');
       toast.error('حدث خطأ أثناء تحديث الحركة');
     }
   },
 
   deleteTransaction: async (id) => {
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (!error) {
+    const { error, data } = await supabase.from('transactions').delete().eq('id', id).select();
+    if (!error && data && data.length > 0) {
       set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
       toast.success('تم حذف الحركة المالية');
     } else {
-      console.error(error);
+      console.error(error || 'No rows deleted.');
       toast.error('حدث خطأ أثناء حذف الحركة المالية');
     }
   }
