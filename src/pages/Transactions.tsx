@@ -11,6 +11,13 @@ export default function Transactions() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  const [filterType, setFilterType] = useState('all');
+  const [filterStaff, setFilterStaff] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
@@ -33,9 +40,33 @@ export default function Transactions() {
     return true;
   });
 
-  const filteredTransactions = visibleTransactions.filter(t => 
-    (t.description || '').toLowerCase().includes((searchTerm || '').toLowerCase())
-  );
+  const filteredTransactions = visibleTransactions.filter(t => {
+    const { staffName } = parseDescriptionWithStaff(t.description);
+    
+    let match = true;
+    if (searchTerm) {
+      if (!t.description.toLowerCase().includes(searchTerm.toLowerCase())) match = false;
+    }
+    if (filterType !== 'all') {
+      if (filterType === 'income' && t.type !== 'income') match = false;
+      if (filterType === 'expense' && t.type !== 'expense' && t.type !== 'operating_expense') match = false;
+      if (filterType === 'form' && !t.description.includes('استمارة')) match = false;
+      if (filterType === 'photography' && !t.description.includes('تصوير')) match = false;
+      if (filterType === 'visa' && !t.description.includes('تأشير')) match = false;
+    }
+    if (filterStaff && staffName !== filterStaff) {
+      match = false;
+    }
+    if (filterDateFrom) {
+       if (new Date(t.date) < new Date(filterDateFrom)) match = false;
+    }
+    if (filterDateTo) {
+       const endOfDateTo = new Date(filterDateTo);
+       endOfDateTo.setHours(23, 59, 59, 999);
+       if (new Date(t.date) > endOfDateTo) match = false;
+    }
+    return match;
+  });
 
   const totalIncome = visibleTransactions
     .filter(t => t.type === 'income')
@@ -226,7 +257,10 @@ export default function Transactions() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full sm:w-auto">
+          <button 
+            onClick={() => setIsFilterOpen(!isFilterOpen)} 
+            className={`border px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 transition-colors w-full sm:w-auto ${isFilterOpen || filterType !== 'all' || filterStaff || filterDateFrom || filterDateTo ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+          >
             <Filter className="w-4 h-4" />
             {t('filter', language)}
           </button>
@@ -248,6 +282,60 @@ export default function Transactions() {
           </button>
         </div>
       </div>
+
+      {isFilterOpen && (
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex gap-4 flex-wrap items-end">
+          <div className="flex-1 min-w-[150px]">
+             <label className="block text-[13px] font-semibold text-slate-600 mb-1">من تاريخ</label>
+             <input 
+               type="date"
+               value={filterDateFrom}
+               onChange={e => setFilterDateFrom(e.target.value)}
+               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+             />
+          </div>
+          <div className="flex-1 min-w-[150px]">
+             <label className="block text-[13px] font-semibold text-slate-600 mb-1">إلى تاريخ</label>
+             <input 
+               type="date"
+               value={filterDateTo}
+               onChange={e => setFilterDateTo(e.target.value)}
+               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+             />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-[13px] font-semibold text-slate-600 mb-1">نوع العملية</label>
+            <select 
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white"
+            >
+              <option value="all">الكل</option>
+              <option value="income">إيرادات (قبض)</option>
+              <option value="expense">مصروفات (صرف)</option>
+              <option value="form">استمارة</option>
+              <option value="photography">تصوير</option>
+              <option value="visa">تأشيرة</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-[13px] font-semibold text-slate-600 mb-1">مدخل العملية (الموظف)</label>
+            <input 
+              type="text"
+              placeholder="اسم الموظف..."
+              value={filterStaff}
+              onChange={e => setFilterStaff(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+            />
+          </div>
+          <button 
+            onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterType('all'); setFilterStaff(''); }}
+            className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-lg"
+          >
+            مسح الفلاتر
+          </button>
+        </div>
+      )}
 
       <section className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col">
         <div className="overflow-x-auto">

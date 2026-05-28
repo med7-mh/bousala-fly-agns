@@ -16,7 +16,8 @@ import {
   X,
   Globe,
   UserCircle,
-  Compass
+  Compass,
+  FileBarChart2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -55,6 +56,7 @@ export default function Layout() {
   const secondaryNav = [
     { name: t('suppliers', language), href: '/suppliers', icon: Building2 },
     { name: t('expenses', language), href: '/expenses', icon: ReceiptText },
+    { name: 'التقارير', href: '/reports', icon: FileBarChart2 },
     { name: 'الموظفين والعمال', href: '/employees', icon: Users },
     ...(user.role === 'admin' ? [{ name: t('settings', language), href: '/settings', icon: Settings }] : []),
     ...(user.email === '22247071347@bosla.app' ? [{ name: 'إدارة النظام', href: '/admin', icon: Settings }] : []),

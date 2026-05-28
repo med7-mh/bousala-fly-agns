@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, Employee } from '../store/useStore';
-import { Plus, Search, UserCircle, Briefcase, Phone, Calendar, DollarSign, Wallet } from 'lucide-react';
-import { formatCurrency, parseDescriptionWithStaff } from '../lib/utils';
+import { Plus, Search, UserCircle, Briefcase, Phone, Calendar, DollarSign, Wallet, FileText, X } from 'lucide-react';
+import { formatCurrency, parseDescriptionWithStaff, cn } from '../lib/utils';
 import { t } from '../lib/translations';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ export default function Employees() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [isStatementOpen, setIsStatementOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
@@ -34,6 +35,11 @@ export default function Employees() {
   const handleOpenPayModal = (employee: Employee) => {
     setSelectedEmployee(employee);
     setIsPayModalOpen(true);
+  };
+
+  const handleOpenStatementModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsStatementOpen(true);
   };
 
   const handleAddEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -168,25 +174,33 @@ export default function Employees() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-3 border-t border-slate-100 flex gap-2">
+              <div className="bg-slate-50 p-3 border-t border-slate-100 flex gap-2 flex-wrap sm:flex-nowrap">
                 <button 
                   onClick={() => handleOpenPayModal(employee)}
-                  className="flex-1 bg-emerald-100 text-emerald-700 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-200 transition-colors"
+                  className="flex-1 bg-emerald-100 text-emerald-700 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-200 transition-colors whitespace-nowrap"
                 >
                   {t('pay_amount', language)}
                 </button>
                 <button 
-                  onClick={() => handleOpenEditModal(employee)}
-                  className="px-3 bg-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+                  onClick={() => handleOpenStatementModal(employee)}
+                  className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-sm font-semibold hover:bg-blue-200 transition-colors whitespace-nowrap"
                 >
-                  {t('edit', language)}
+                  كشف حساب
                 </button>
-                <button 
-                  onClick={() => handleDelete(employee.id)}
-                  className="px-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
-                >
-                  {t('delete', language)}
-                </button>
+                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                  <button 
+                    onClick={() => handleOpenEditModal(employee)}
+                    className="flex-1 sm:flex-none px-3 bg-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+                  >
+                    {t('edit', language)}
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(employee.id)}
+                    className="flex-1 sm:flex-none px-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                  >
+                    {t('delete', language)}
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -297,6 +311,61 @@ export default function Employees() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Statement Modal */}
+      {isStatementOpen && selectedEmployee && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl border border-slate-200 shadow-xl max-h-[90vh] flex flex-col" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-500" />
+                  كشف حساب موظف
+                </h3>
+                <p className="text-[14px] text-slate-500 mt-1">الاسم: <span className="font-bold text-slate-700">{selectedEmployee.name}</span></p>
+              </div>
+              <button onClick={() => setIsStatementOpen(false)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto flex-1 pr-2">
+              <table className="w-full text-right border-collapse">
+                <thead>
+                  <tr>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-500 text-[13px] font-semibold">التاريخ</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-500 text-[13px] font-semibold">الوصف</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-500 text-[13px] font-semibold">طريقة الدفع</th>
+                    <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-500 text-[13px] font-semibold">المبلغ المسدد</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions
+                    .filter(t => t.employee_id === selectedEmployee.id && (t.type === 'expense' || t.type === 'operating_expense'))
+                    .map(tx => (
+                      <tr key={tx.id} className="hover:bg-slate-50 border-b border-slate-50">
+                        <td className="py-3 px-2 text-sm text-slate-600 truncate" dir="ltr">{new Date(tx.date).toLocaleDateString('en-GB')}</td>
+                        <td className="py-3 px-2 text-sm text-slate-700">{parseDescriptionWithStaff(tx.description).text}</td>
+                        <td className="py-3 px-2 text-sm text-slate-500">{t(tx.payment_method as any || 'cash', language)}</td>
+                        <td className="py-3 px-2 text-sm font-bold text-emerald-600" dir="ltr">{formatCurrency(tx.amount)}</td>
+                      </tr>
+                    ))}
+                  {transactions.filter(t => t.employee_id === selectedEmployee.id && (t.type === 'expense' || t.type === 'operating_expense')).length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500 text-sm">لا توجد عمليات صرف مسجلة لهذا الموظف.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 p-4 rounded-lg flex justify-between items-center">
+               <span className="font-bold text-slate-700">إجمالي المدفوعات</span>
+               <span className="text-xl font-bold text-emerald-600" dir="ltr">{formatCurrency(getPaidAmount(selectedEmployee.id))}</span>
+            </div>
           </div>
         </div>
       )}
