@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore, Customer } from '../store/useStore';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, getCleanDescription } from '../lib/utils';
 import { t } from '../lib/translations';
 import { Plus, Search, Mail, Phone, FileText, X, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
@@ -263,7 +263,7 @@ export default function Customers() {
                       id: b.id,
                       date: new Date(b.created_at || '').getTime(),
                       dateStr: b.created_at,
-                      desc: `حجز: ${b.description}`,
+                      desc: `حجز: ${getCleanDescription(b.description)}`,
                       debit: b.selling_price,
                       credit: 0
                     }));

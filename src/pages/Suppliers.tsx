@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, Supplier } from '../store/useStore';
 import { t } from '../lib/translations';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, getCleanDescription } from '../lib/utils';
 import { Plus, Search, Mail, Phone, FileText, X, Building2, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Suppliers() {
@@ -264,7 +264,7 @@ export default function Suppliers() {
                       id: b.id,
                       date: new Date(b.created_at || '').getTime(),
                       dateStr: b.created_at,
-                      desc: `حجز تذكرة: ${b.description}`,
+                      desc: `حجز تذكرة: ${getCleanDescription(b.description)}`,
                       debit: b.cost_price, // cost we owe them
                       credit: 0
                     }));

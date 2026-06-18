@@ -132,6 +132,12 @@ interface AppState {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'agency_id'>) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+
+  // Custom Booking Types
+  customBookingTypes: string[];
+  addCustomBookingType: (type: string) => void;
+  removeCustomBookingType: (type: string) => void;
+  loadCustomBookingTypes: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -146,6 +152,7 @@ export const useStore = create<AppState>((set, get) => ({
   
   staffMembers: [],
   activeStaff: null,
+  customBookingTypes: [],
 
   loadStaffList: async () => {
     const { user } = get();
@@ -219,6 +226,7 @@ export const useStore = create<AppState>((set, get) => ({
   login: (user) => {
     set({ user });
     get().loadStaffList();
+    get().loadCustomBookingTypes();
     get().fetchData();
   },
 
@@ -228,10 +236,46 @@ export const useStore = create<AppState>((set, get) => ({
     if (data.session) {
       await supabase.auth.signOut();
     }
-    set({ user: null, customers: [], bookings: [], transactions: [], isLoading: false });
+    set({ user: null, customers: [], bookings: [], transactions: [], isLoading: false, customBookingTypes: [] });
   },
 
   setLanguage: (lang) => set({ language: lang }),
+
+  loadCustomBookingTypes: () => {
+    const { user } = get();
+    if (!user) return;
+    const stored = localStorage.getItem(`custom_booking_types_${user.agency_id}`);
+    if (stored) {
+      try {
+        set({ customBookingTypes: JSON.parse(stored) });
+      } catch (e) {
+        set({ customBookingTypes: [] });
+      }
+    } else {
+      set({ customBookingTypes: [] });
+    }
+  },
+
+  addCustomBookingType: (type: string) => {
+    const { user, customBookingTypes } = get();
+    if (!user) return;
+    const trimmed = type.trim();
+    if (!trimmed) return;
+    if (customBookingTypes.includes(trimmed)) return;
+    const newList = [...customBookingTypes, trimmed];
+    localStorage.setItem(`custom_booking_types_${user.agency_id}`, JSON.stringify(newList));
+    set({ customBookingTypes: newList });
+    toast.success('تم إضافة نوع الخدمة المخصصة بنجاح');
+  },
+
+  removeCustomBookingType: (type: string) => {
+    const { user, customBookingTypes } = get();
+    if (!user) return;
+    const newList = customBookingTypes.filter(t => t !== type);
+    localStorage.setItem(`custom_booking_types_${user.agency_id}`, JSON.stringify(newList));
+    set({ customBookingTypes: newList });
+    toast.success('تم إزالة نوع الخدمة المخصصة بنجاح');
+  },
   
   isSubscriptionExpired: () => {
     const { user } = get();

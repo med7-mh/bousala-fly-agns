@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, TransactionType, Transaction } from '../store/useStore';
-import { formatCurrency, parseDescriptionWithStaff, cn } from '../lib/utils';
+import { formatCurrency, parseDescriptionWithStaff, cn, getCleanDescription } from '../lib/utils';
 import { t } from '../lib/translations';
 import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Wallet, Landmark, Smartphone, CreditCard, Banknote, Edit2, Trash2, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -493,7 +493,7 @@ export default function Transactions() {
                       const customer = customers.find(c => c.id === b.customer_id);
                       return (
                         <option key={b.id} value={b.id}>
-                          {customer?.name} - {b.description}
+                          {customer?.name} - {getCleanDescription(b.description)}
                         </option>
                       );
                     })}

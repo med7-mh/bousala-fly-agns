@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore, User } from '../store/useStore';
 import toast from 'react-hot-toast';
-import { Shield, Users, Save, ShieldAlert, ArrowUpRight, ArrowDownRight, FileText } from 'lucide-react';
+import { Shield, Users, Save, ShieldAlert, ArrowUpRight, ArrowDownRight, FileText, Plus } from 'lucide-react';
 import { t } from '../lib/translations';
 import { formatCurrency } from '../lib/utils';
 
@@ -12,7 +12,27 @@ export default function Settings() {
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPin, setNewStaffPin] = useState('');
   const [newStaffRole, setNewStaffRole] = useState<'manager' | 'staff'>('staff');
-  const { user, transactions, bookings, language, staffMembers, addStaff, removeStaff } = useStore();
+  const [newCustomServiceType, setNewCustomServiceType] = useState('');
+  const { 
+    user, 
+    transactions, 
+    bookings, 
+    language, 
+    staffMembers, 
+    addStaff, 
+    removeStaff,
+    customBookingTypes,
+    addCustomBookingType,
+    removeCustomBookingType
+  } = useStore();
+
+  const handleAddCustomServiceType = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newCustomServiceType.trim()) {
+      addCustomBookingType(newCustomServiceType.trim());
+      setNewCustomServiceType('');
+    }
+  };
 
   const handleAddLocalStaff = (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,6 +355,58 @@ export default function Settings() {
                 {staffMembers.length === 0 && (
                   <div className="text-center p-4 text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg">
                     {t('no_local_staff', language)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Services Management Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col h-fit">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                <Plus className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-[17px] font-bold text-slate-800">الخدمات المخصصة للوكالة</h2>
+                <p className="text-[12px] text-slate-500 mt-1">تحديد أنواع خدمات إضافية غير المدمجة (مثل تأجير سيارات، تأمين، شحن)</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              <form onSubmit={handleAddCustomServiceType} className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newCustomServiceType}
+                  onChange={(e) => setNewCustomServiceType(e.target.value)}
+                  placeholder="مثال: شحن جوي، تأمين سفر..."
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" 
+                  required
+                />
+                <button 
+                  type="submit" 
+                  disabled={!newCustomServiceType.trim()}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:bg-slate-300 transition-colors whitespace-nowrap"
+                >
+                  إضافة نوع خدمة
+                </button>
+              </form>
+
+              <div className="flex flex-col gap-2 mt-2">
+                {customBookingTypes.map((type, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-slate-50">
+                    <span className="text-sm font-semibold text-slate-700">{type}</span>
+                    <button 
+                      onClick={() => removeCustomBookingType(type)}
+                      className="text-red-500 hover:text-red-700 text-[12px] font-medium"
+                    >
+                      إزالة
+                    </button>
+                  </div>
+                ))}
+                {customBookingTypes.length === 0 && (
+                  <div className="text-center p-4 text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg">
+                    لم تقم بإضافة أي خدمات مخصصة للمكتب بعد. يمكنك إضافتها من هنا لتظهر فوراً في تفصيل الحجوزات.
                   </div>
                 )}
               </div>
