@@ -135,9 +135,10 @@ interface AppState {
 
   // Custom Booking Types
   customBookingTypes: string[];
-  addCustomBookingType: (type: string) => void;
-  removeCustomBookingType: (type: string) => void;
-  loadCustomBookingTypes: () => void;
+  addCustomBookingType: (type: string) => Promise<void>;
+  removeCustomBookingType: (type: string) => Promise<void>;
+  loadCustomBookingTypes: () => Promise<void>;
+  saveCustomBookingTypesToDb: (types: string[]) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -241,7 +242,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   setLanguage: (lang) => set({ language: lang }),
 
-  loadCustomBookingTypes: () => {
+  loadCustomBookingTypes: async () => {
     const { user } = get();
     if (!user) return;
     const stored = localStorage.getItem(`custom_booking_types_${user.agency_id}`);
@@ -254,9 +255,63 @@ export const useStore = create<AppState>((set, get) => ({
     } else {
       set({ customBookingTypes: [] });
     }
+
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('agency_id', user.agency_id)
+        .eq('name', '__agency_settings__')
+        .maybeSingle();
+
+      if (!error && data && data.notes) {
+        const parsed = JSON.parse(data.notes);
+        if (Array.isArray(parsed.customBookingTypes)) {
+          set({ customBookingTypes: parsed.customBookingTypes });
+          localStorage.setItem(`custom_booking_types_${user.agency_id}`, JSON.stringify(parsed.customBookingTypes));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   },
 
-  addCustomBookingType: (type: string) => {
+  saveCustomBookingTypesToDb: async (newList: string[]) => {
+    const { user } = get();
+    if (!user) return;
+    try {
+      const { data: existing, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('agency_id', user.agency_id)
+        .eq('name', '__agency_settings__')
+        .maybeSingle();
+
+      const jsonStr = JSON.stringify({ customBookingTypes: newList });
+
+      if (existing) {
+        await supabase
+          .from('customers')
+          .update({ notes: jsonStr })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('customers')
+          .insert([{
+            agency_id: user.agency_id,
+            name: '__agency_settings__',
+            notes: jsonStr,
+            phone: '',
+            email: '',
+            notes_history: '' // if exists or fallback
+          }]);
+      }
+    } catch (e) {
+      console.error('Failed to save custom types to DB:', e);
+    }
+  },
+
+  addCustomBookingType: async (type: string) => {
     const { user, customBookingTypes } = get();
     if (!user) return;
     const trimmed = type.trim();
@@ -266,15 +321,17 @@ export const useStore = create<AppState>((set, get) => ({
     localStorage.setItem(`custom_booking_types_${user.agency_id}`, JSON.stringify(newList));
     set({ customBookingTypes: newList });
     toast.success('تم إضافة نوع الخدمة المخصصة بنجاح');
+    await get().saveCustomBookingTypesToDb(newList);
   },
 
-  removeCustomBookingType: (type: string) => {
+  removeCustomBookingType: async (type: string) => {
     const { user, customBookingTypes } = get();
     if (!user) return;
     const newList = customBookingTypes.filter(t => t !== type);
     localStorage.setItem(`custom_booking_types_${user.agency_id}`, JSON.stringify(newList));
     set({ customBookingTypes: newList });
     toast.success('تم إزالة نوع الخدمة المخصصة بنجاح');
+    await get().saveCustomBookingTypesToDb(newList);
   },
   
   isSubscriptionExpired: () => {
@@ -310,12 +367,29 @@ export const useStore = create<AppState>((set, get) => ({
         supabase.from('transactions').select('*').order('date', { ascending: false }),
       ]);
 
+      const rawCustomers = customersRes.data || [];
+      const cleanCustomers = rawCustomers.filter(c => c.name !== '__agency_settings__');
+      const settingsCust = rawCustomers.find(c => c.name === '__agency_settings__');
+      let dbCustomTypes: string[] = [];
+
+      if (settingsCust && settingsCust.notes) {
+        try {
+          const parsed = JSON.parse(settingsCust.notes);
+          if (Array.isArray(parsed.customBookingTypes)) {
+            dbCustomTypes = parsed.customBookingTypes;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       set({
-        customers: customersRes.data || [],
+        customers: cleanCustomers,
         suppliers: suppliersRes.data || [],
         employees: employeesRes.data || [],
         bookings: bookingsRes.data || [],
         transactions: txRes.data || [],
+        customBookingTypes: dbCustomTypes.length > 0 ? dbCustomTypes : get().customBookingTypes
       });
     } catch (error) {
       console.error('Error fetching data:', error);
