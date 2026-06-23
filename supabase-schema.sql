@@ -49,6 +49,8 @@ CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
     booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+    customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+    supplier_id UUID REFERENCES suppliers(id) ON DELETE SET NULL,
     type VARCHAR(50) CHECK (type IN ('income', 'expense')) NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
     description TEXT,
