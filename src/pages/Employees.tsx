@@ -19,7 +19,6 @@ import {
   parseDescriptionWithStaff,
   cn,
   handlePrint,
-  exportToPDF,
 } from "../lib/utils";
 import { t } from "../lib/translations";
 import toast from "react-hot-toast";
@@ -489,7 +488,7 @@ export default function Employees() {
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div
             id="employee-statement-container"
-            className="bg-white rounded-xl p-6 w-full max-w-2xl border border-slate-200 shadow-xl max-h-[90vh] flex flex-col"
+            className="print-section bg-white rounded-xl p-6 w-full max-w-2xl border border-slate-200 shadow-xl max-h-[90vh] flex flex-col"
             dir={language === "ar" ? "rtl" : "ltr"}
           >
             <div className="flex items-start justify-between mb-6 pb-4 border-b border-slate-100">
@@ -515,18 +514,6 @@ export default function Employees() {
                   title={t("print", language)}
                 >
                   <Printer className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    exportToPDF(
-                      "employee-statement-container",
-                      `employee-statement-${selectedEmployee.id}`,
-                    )
-                  }
-                  className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 bg-white"
-                  title={t("download_pdf", language)}
-                >
-                  <Download className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsStatementOpen(false)}

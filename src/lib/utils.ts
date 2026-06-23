@@ -82,25 +82,3 @@ export const getCleanDescription = (description: string) => {
 export const handlePrint = () => {
   window.print();
 };
-
-export const exportToPDF = async (elementId: string, filename: string) => {
-  try {
-    const html2pdf = (await import("html2pdf.js")).default;
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    // Add print styles temporarily for PDF generation if needed, but html2pdf uses the screen styles by default.
-    // However, if we want dark text and no borders, the page styles apply.
-    const opt = {
-      margin: 10,
-      filename: `${filename}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-    };
-
-    html2pdf().set(opt).from(element).save();
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-  }
-};

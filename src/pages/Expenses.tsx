@@ -5,7 +5,6 @@ import {
   parseDescriptionWithStaff,
   cn,
   handlePrint,
-  exportToPDF,
 } from "../lib/utils";
 import { t, translateCategory } from "../lib/translations";
 import {
@@ -187,15 +186,6 @@ export default function Expenses() {
             <Printer className="w-4 h-4" />
             {t("print", language) || "طباعة"}
           </button>
-          <button
-            onClick={() =>
-              exportToPDF("expenses-table-container", "expenses-report")
-            }
-            className="border px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors w-full sm:w-auto"
-          >
-            <Download className="w-4 h-4" />
-            {t("download_pdf", language) || "تحميل PDF"}
-          </button>
         </div>
         <button
           onClick={handleOpenAddModal}
@@ -208,7 +198,7 @@ export default function Expenses() {
 
       <section
         id="expenses-table-container"
-        className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col"
+        className="print-section bg-white rounded-xl border border-slate-200 p-5 flex flex-col"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse">

@@ -5,7 +5,6 @@ import {
   formatCurrency,
   getCleanDescription,
   handlePrint,
-  exportToPDF,
 } from "../lib/utils";
 import {
   Plus,
@@ -365,7 +364,7 @@ export default function Suppliers() {
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
           <div
             id="supplier-statement-container"
-            className="bg-white rounded-xl p-6 w-full max-w-4xl border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto flex flex-col"
+            className="print-section bg-white rounded-xl p-6 w-full max-w-4xl border border-slate-200 shadow-xl max-h-[90vh] overflow-y-auto flex flex-col"
           >
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-[19px] font-bold text-slate-800">
@@ -381,18 +380,6 @@ export default function Suppliers() {
                   title={t("print", language)}
                 >
                   <Printer className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    exportToPDF(
-                      "supplier-statement-container",
-                      `supplier-statement-${statementSupplier.id}`,
-                    )
-                  }
-                  className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 bg-white"
-                  title={t("download_pdf", language)}
-                >
-                  <Download className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setStatementSupplier(null)}

@@ -1,7 +1,11 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore, TransactionType } from "../store/useStore";
-import { formatCurrency, parseDescriptionWithStaff, cn } from "../lib/utils";
+import {
+  formatCurrency,
+  parseDescriptionWithStaff,
+  cn,
+} from "../lib/utils";
 import { t } from "../lib/translations";
 import {
   FileText,
@@ -139,16 +143,6 @@ export default function Dashboard() {
     setTimeout(() => {
       window.print();
     }, 500);
-  };
-
-  const handleDownloadPDF = () => {
-    toast(
-      'لتحميل الملف، يرجى اختيار "حفظ بتنسيق PDF" (Save as PDF) من نافذة الطباعة التي ستظهر الآن.',
-      { duration: 5000, icon: "📄" },
-    );
-    setTimeout(() => {
-      handlePrint();
-    }, 1500);
   };
 
   return (
@@ -305,6 +299,7 @@ export default function Dashboard() {
 
       {/* Daily Ledger Details */}
       <section
+        id="daily-ledger-container"
         ref={printRef}
         className="print-section bg-white rounded-xl border border-slate-200 flex flex-col flex-1 min-h-[300px]"
       >
@@ -322,13 +317,6 @@ export default function Dashboard() {
               title="طباعة (Print)"
             >
               <Printer className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleDownloadPDF}
-              className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-slate-200 bg-white shadow-sm"
-              title="تحميل كملف PDF"
-            >
-              <Download className="w-4 h-4" />
             </button>
           </div>
         </div>
