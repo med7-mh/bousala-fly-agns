@@ -65,7 +65,7 @@ export default function Expenses() {
   );
 
   const operatingExpenses = allOperatingExpenses.filter((t) => {
-    if (activeStaff?.role === "staff") {
+    if (activeStaff && activeStaff.role !== "manager") {
       const { staffName } = parseDescriptionWithStaff(t.description);
       return staffName === activeStaff.name;
     }

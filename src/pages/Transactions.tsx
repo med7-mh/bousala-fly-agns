@@ -56,6 +56,7 @@ export default function Transactions() {
     useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] =
     useState<Transaction | null>(null);
+  const [selectedAccountForModal, setSelectedAccountForModal] = useState<{ id: string; label: string } | null>(null);
 
   const [txType, setTxType] = useState<TransactionType>("income");
 
@@ -69,7 +70,7 @@ export default function Transactions() {
 
   // If the user is a normal staff, they should only see their own transactions. Manager / Admin sees all.
   const visibleTransactions = transactions.filter((t) => {
-    if (activeStaff?.role === "staff") {
+    if (activeStaff && activeStaff.role !== "manager") {
       const { staffName } = parseDescriptionWithStaff(t.description);
       return staffName === activeStaff.name;
     }
@@ -348,7 +349,8 @@ export default function Transactions() {
           return (
             <div
               key={method.id}
-              className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-emerald-200 transition-colors"
+              onClick={() => setSelectedAccountForModal({ id: method.id, label: method.label })}
+              className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-emerald-200 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -1056,6 +1058,90 @@ export default function Transactions() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {selectedAccountForModal && (
+        <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-4xl shadow-xl max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-slate-800">
+                {t("account_statement", language) || "كشف حساب"} - {selectedAccountForModal.label}
+              </h3>
+              <button
+                onClick={() => setSelectedAccountForModal(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              <table className="w-full text-right border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-y border-slate-200">
+                    <th className="py-3 px-4 font-semibold text-slate-600 text-[13px]">{t("date", language)}</th>
+                    <th className="py-3 px-4 font-semibold text-slate-600 text-[13px]">{t("description", language)}</th>
+                    <th className="py-3 px-4 font-semibold text-slate-600 text-[13px]">{t("amount", language)}</th>
+                    <th className="py-3 px-4 font-semibold text-slate-600 text-[13px]">{t("type", language)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleTransactions
+                    .filter((t) => t.payment_method === selectedAccountForModal.id || (!t.payment_method && selectedAccountForModal.id === "cash"))
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((transaction) => (
+                      <tr key={transaction.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4 text-sm text-slate-600">
+                          {new Date(transaction.date).toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", { year: "numeric", month: "short", day: "numeric" })}
+                        </td>
+                        <td className="py-3 px-4 text-sm font-medium text-slate-800">
+                          {getCleanDescription(transaction.description)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={cn(
+                              "text-sm font-bold",
+                              transaction.type === "income" ? "text-emerald-600" : "text-red-600"
+                            )}
+                          >
+                            {transaction.type === "income" ? "+" : "-"} {formatCurrency(transaction.amount, "")}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={cn(
+                              "inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium",
+                              transaction.type === "income"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-red-100 text-red-700"
+                            )}
+                          >
+                            {transaction.type === "income"
+                              ? t("income", language)
+                              : t("expense", language)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  {visibleTransactions.filter((t) => t.payment_method === selectedAccountForModal.id || (!t.payment_method && selectedAccountForModal.id === "cash")).length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500 text-sm">
+                        {t("no_transactions", language) || "لا توجد حركات"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-xl">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-slate-600">{t("balance", language) || "الرصيد"}</span>
+                <span className={cn("text-xl font-bold", getBalanceByMethod(selectedAccountForModal.id) >= 0 ? "text-emerald-600" : "text-red-600")}>
+                  {formatCurrency(getBalanceByMethod(selectedAccountForModal.id))}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -231,7 +231,7 @@ export default function Bookings() {
   };
 
   const visibleBookings = bookings.filter((b) => {
-    if (activeStaff?.role === "staff") {
+    if (activeStaff && activeStaff.role !== "manager") {
       const { staffName } = parseDescriptionWithStaff(b.description);
       return staffName === activeStaff.name;
     }

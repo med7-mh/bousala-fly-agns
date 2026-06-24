@@ -4,6 +4,7 @@ import {
   formatCurrency,
   getCleanDescription,
   handlePrint,
+  parseDescriptionWithStaff,
 } from "../lib/utils";
 import { t } from "../lib/translations";
 import {
@@ -29,8 +30,25 @@ export default function Customers() {
     updateCustomer,
     deleteCustomer,
     language,
+    activeStaff,
   } = useStore();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const visibleBookings = bookings.filter((b) => {
+    if (activeStaff && activeStaff.role !== "manager") {
+      const { staffName } = parseDescriptionWithStaff(b.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
+
+  const visibleTransactions = transactions.filter((t) => {
+    if (activeStaff && activeStaff.role !== "manager") {
+      const { staffName } = parseDescriptionWithStaff(t.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,7 +162,7 @@ export default function Customers() {
             </thead>
             <tbody>
               {filteredCustomers.map((customer) => {
-                const customerBookings = bookings.filter(
+                const customerBookings = visibleBookings.filter(
                   (b) => b.customer_id === customer.id,
                 );
                 const totalBooked = customerBookings.reduce(
@@ -153,7 +171,7 @@ export default function Customers() {
                 );
 
                 const customerBookingIds = customerBookings.map((b) => b.id);
-                const customerTransactions = transactions.filter(
+                const customerTransactions = visibleTransactions.filter(
                   (t) =>
                     t.customer_id === customer.id ||
                     (t.booking_id && customerBookingIds.includes(t.booking_id)),
@@ -434,7 +452,7 @@ export default function Customers() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const cb = bookings
+                    const cb = visibleBookings
                       .filter((b) => b.customer_id === statementCustomer.id)
                       .map((b) => ({
                         id: b.id,
@@ -445,7 +463,7 @@ export default function Customers() {
                         credit: 0,
                       }));
 
-                    const cp = transactions
+                    const cp = visibleTransactions
                       .filter(
                         (t) =>
                           t.customer_id === statementCustomer.id ||

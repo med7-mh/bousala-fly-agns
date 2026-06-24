@@ -5,6 +5,7 @@ import {
   formatCurrency,
   getCleanDescription,
   handlePrint,
+  parseDescriptionWithStaff,
 } from "../lib/utils";
 import {
   Plus,
@@ -30,8 +31,25 @@ export default function Suppliers() {
     updateSupplier,
     deleteSupplier,
     language,
+    activeStaff,
   } = useStore();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const visibleBookings = bookings.filter((b) => {
+    if (activeStaff && activeStaff.role !== "manager") {
+      const { staffName } = parseDescriptionWithStaff(b.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
+
+  const visibleTransactions = transactions.filter((t) => {
+    if (activeStaff && activeStaff.role !== "manager") {
+      const { staffName } = parseDescriptionWithStaff(t.description);
+      return staffName === activeStaff.name;
+    }
+    return true;
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -149,7 +167,7 @@ export default function Suppliers() {
                 // Let's implement this properly: assuming transactions table has a supplier_id or booking table has supplier_id.
                 // But the user just asked to build it. Wait, I should add supplier_id to bookings!
                 // Let's assume I already add supplier_id to bookings.
-                const supplierBookings = bookings.filter(
+                const supplierBookings = visibleBookings.filter(
                   (b: any) => b.supplier_id === supplier.id,
                 );
                 const totalCost = supplierBookings.reduce(
@@ -157,7 +175,7 @@ export default function Suppliers() {
                   0,
                 );
 
-                const supplierTransactions = transactions.filter(
+                const supplierTransactions = visibleTransactions.filter(
                   (t: any) => t.supplier_id === supplier.id,
                 );
                 // Expenses are money we paid to supplier. Income is refunds from supplier.
@@ -410,7 +428,7 @@ export default function Suppliers() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const sb = bookings
+                    const sb = visibleBookings
                       .filter(
                         (b: any) => b.supplier_id === statementSupplier.id,
                       )
@@ -423,7 +441,7 @@ export default function Suppliers() {
                         credit: 0,
                       }));
 
-                    const sp = transactions
+                    const sp = visibleTransactions
                       .filter(
                         (t: any) => t.supplier_id === statementSupplier.id,
                       )

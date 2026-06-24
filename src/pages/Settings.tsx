@@ -21,7 +21,7 @@ interface Profile extends User {} // reuse user type
 export default function Settings() {
   const [newStaffName, setNewStaffName] = useState("");
   const [newStaffPin, setNewStaffPin] = useState("");
-  const [newStaffRole, setNewStaffRole] = useState<"manager" | "staff">(
+  const [newStaffRole, setNewStaffRole] = useState<"manager" | "staff" | "staff_2">(
     "staff",
   );
   const [newCustomServiceType, setNewCustomServiceType] = useState("");
@@ -32,6 +32,7 @@ export default function Settings() {
     bookings,
     language,
     staffMembers,
+    activeStaff,
     addStaff,
     removeStaff,
     customBookingTypes,
@@ -409,11 +410,12 @@ export default function Settings() {
                   <select
                     value={newStaffRole}
                     onChange={(e) =>
-                      setNewStaffRole(e.target.value as "manager" | "staff")
+                      setNewStaffRole(e.target.value as "manager" | "staff" | "staff_2")
                     }
                     className="w-full sm:w-auto px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
                   >
-                    <option value="staff">{t("normal_staff", language)}</option>
+                    <option value="staff">{t("normal_staff", language)} (يومية فقط)</option>
+                    <option value="staff_2">موظف شامل (يومية، حجوزات، عملاء، موردين)</option>
                     <option value="manager">
                       {t("staff_manager", language)}
                     </option>
@@ -454,17 +456,29 @@ export default function Settings() {
                             مدير موظفين
                           </span>
                         )}
+                        {staff.role === "staff_2" && (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">
+                            موظف شامل
+                          </span>
+                        )}
+                        {staff.role === "staff" && (
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded">
+                            موظف عادي
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-400">
                         الرمز: ****
                       </span>
                     </div>
-                    <button
-                      onClick={() => removeStaff(staff.name)}
-                      className="text-red-500 hover:text-red-700 text-[12px] font-medium"
-                    >
-                      حذف
-                    </button>
+                    {!activeStaff && (
+                      <button
+                        onClick={() => removeStaff(staff.name)}
+                        className="text-red-500 hover:text-red-700 text-[12px] font-medium"
+                      >
+                        حذف
+                      </button>
+                    )}
                   </div>
                 ))}
                 {staffMembers.length === 0 && (

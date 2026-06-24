@@ -89,7 +89,7 @@ export interface LocalStaff {
   id?: string;
   name: string;
   pin: string;
-  role?: "manager" | "staff";
+  role?: "manager" | "staff" | "staff_2";
 }
 
 export type Language = "ar" | "fr";
@@ -111,7 +111,7 @@ interface AppState {
   addStaff: (
     name: string,
     pin: string,
-    role: "manager" | "staff",
+    role: "manager" | "staff" | "staff_2",
   ) => Promise<void>;
   removeStaff: (name: string) => Promise<void>;
   setActiveStaff: (staff: LocalStaff | null) => void;
@@ -195,7 +195,14 @@ export const useStore = create<AppState>((set, get) => ({
         .order("created_at", { ascending: true });
 
       if (!error && data) {
-        set({ staffMembers: data });
+        const mappedData = data.map((staff: any) => {
+          if (staff.name && staff.name.endsWith("___staff_2")) {
+            return { ...staff, name: staff.name.replace("___staff_2", ""), role: "staff_2" };
+          }
+          return staff;
+        });
+        set({ staffMembers: mappedData });
+        localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(mappedData));
       } else {
         const stored = localStorage.getItem(`staff_${user.agency_id}`);
         if (stored) {
@@ -212,7 +219,7 @@ export const useStore = create<AppState>((set, get) => ({
   addStaff: async (
     name: string,
     pin: string,
-    role: "manager" | "staff" = "staff",
+    role: "manager" | "staff" | "staff_2" = "staff",
   ) => {
     const { user, staffMembers } = get();
     // Allow up to 10 staff maybe? The user removed limits or maybe they want more than 3 now. Let's just remove the 3 staff limit or keep it?
@@ -223,19 +230,24 @@ export const useStore = create<AppState>((set, get) => ({
     }
     if (staffMembers.some((s) => s.name === name)) return;
 
+    const dbName = role === "staff_2" ? `${name}___staff_2` : name;
+    const dbRole = role === "staff_2" ? "staff" : role;
+
     const { data, error } = await supabase
       .from("agency_staff")
-      .insert([{ agency_id: user.agency_id, name, pin, role }])
+      .insert([{ agency_id: user.agency_id, name: dbName, pin, role: dbRole }])
       .select()
       .single();
 
-    let newList;
     if (error) {
-      newList = [...staffMembers, { name, pin, role }];
-      localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
-    } else {
-      newList = [...staffMembers, data];
+      console.error("Supabase insert error in addStaff:", error);
+      toast.error(error.message || "حدث خطأ في قاعدة البيانات أثناء إضافة الموظف");
+      return;
     }
+
+    const mappedData = { ...data, name: data.name.replace("___staff_2", ""), role };
+    const newList = [...staffMembers, mappedData];
+    localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));
     set({ staffMembers: newList });
     toast.success("تم إضافة الموظف بنجاح");
   },
@@ -243,12 +255,27 @@ export const useStore = create<AppState>((set, get) => ({
   removeStaff: async (name: string) => {
     const { user, staffMembers, activeStaff } = get();
     if (!user) return;
+    
+    // Only the main admin (when no local staff is active) can remove staff
+    if (activeStaff) {
+      toast.error("لا يمكن حذف الموظف إلا من قبل أدمن الوكالة (المدير الأساسي)");
+      return;
+    }
 
-    await supabase
+    const staff = staffMembers.find((s) => s.name === name);
+    const dbName = staff?.role === "staff_2" ? `${name}___staff_2` : name;
+
+    const { error } = await supabase
       .from("agency_staff")
       .delete()
-      .eq("name", name)
+      .eq("name", dbName)
       .eq("agency_id", user.agency_id);
+
+    if (error) {
+      console.error("Supabase delete error in removeStaff:", error);
+      toast.error(error.message || "حدث خطأ أثناء حذف الموظف");
+      return;
+    }
 
     const newList = staffMembers.filter((s) => s.name !== name);
     localStorage.setItem(`staff_${user.agency_id}`, JSON.stringify(newList));

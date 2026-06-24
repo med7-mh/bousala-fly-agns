@@ -53,7 +53,7 @@ export default function Dashboard() {
 
   // Enforce staff constraint
   React.useEffect(() => {
-    if (activeStaff?.role === "staff") {
+    if (activeStaff && activeStaff.role !== "manager") {
       setSelectedStaffName(activeStaff.name);
     }
   }, [activeStaff]);
