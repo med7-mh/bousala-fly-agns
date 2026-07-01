@@ -19,6 +19,7 @@ import {
   Compass,
   FileBarChart2,
   Shield,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -66,8 +67,8 @@ export default function Layout() {
   const secondaryNav = [
     { name: t("suppliers", language), href: "/suppliers", icon: Building2 },
     { name: t("expenses", language), href: "/expenses", icon: ReceiptText },
-    { name: "التقارير", href: "/reports", icon: FileBarChart2 },
     { name: "الموظفين والعمال", href: "/employees", icon: Users },
+    { name: "التقارير", href: "/reports", icon: FileBarChart2 },
     ...(user.role === "admin"
       ? [{ name: t("settings", language), href: "/settings", icon: Settings }]
       : []),
@@ -134,7 +135,26 @@ export default function Layout() {
           })}
         </nav>
 
-        <div className="px-6 mt-auto">
+        <div className="px-6 mt-auto flex flex-col gap-2">
+          {(!activeStaff || activeStaff.role === "manager") && (
+            <Link
+              to="/ai-analyst"
+              className={cn(
+                "flex items-center px-4 py-2 text-[15px] font-medium rounded-lg transition-colors w-full",
+                location.pathname === "/ai-analyst"
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-slate-600 hover:text-indigo-700 hover:bg-indigo-50"
+              )}
+            >
+              <Sparkles
+                className={cn(
+                  "w-5 h-5 opacity-70",
+                  language === "ar" ? "ml-3" : "mr-3",
+                )}
+              />
+              المحلل المالي
+            </Link>
+          )}
           <button
             onClick={logout}
             className="flex items-center px-4 py-2 text-[15px] font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full"
@@ -272,7 +292,7 @@ export default function Layout() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
-          {navigation.some(nav => nav.href === location.pathname) ? (
+          {navigation.some(nav => nav.href === location.pathname) || (location.pathname === "/ai-analyst" && (!activeStaff || activeStaff.role === "manager")) ? (
             <Outlet />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -367,6 +387,21 @@ export default function Layout() {
                   </Link>
                 );
               })}
+              {(!activeStaff || activeStaff.role === "manager") && (
+                <Link
+                  to="/ai-analyst"
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-xl transition-colors",
+                    location.pathname === "/ai-analyst"
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "bg-slate-50 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700",
+                  )}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Sparkles className="w-5 h-5 opacity-80" />
+                  <span className="font-semibold text-[15px]">المحلل المالي</span>
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="flex items-center gap-4 p-4 rounded-xl bg-red-50 text-red-600 mt-2 hover:bg-red-100 transition-colors"

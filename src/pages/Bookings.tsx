@@ -33,6 +33,7 @@ interface ServiceItem {
   passport_number: string;
   receipt_number: string;
   expected_date: string;
+  return_date: string;
   supplier_id: string;
 }
 
@@ -47,6 +48,7 @@ const initialService = (): ServiceItem => ({
   passport_number: "",
   receipt_number: "",
   expected_date: "",
+  return_date: "",
   supplier_id: "",
 });
 
@@ -173,6 +175,7 @@ export default function Bookings() {
             passport_number: "",
             receipt_number: editingBooking.receipt_number || "",
             expected_date: editingBooking.expected_date || "",
+            return_date: "",
             supplier_id: editingBooking.supplier_id || "",
           },
         ]);
@@ -348,6 +351,8 @@ export default function Bookings() {
           if (s.description) parts.push(`التفاصيل: ${s.description}`);
         } else {
           if (s.pnr) parts.push(`PNR: ${s.pnr}`);
+          if (s.expected_date) parts.push(`تاريخ الذهاب/البداية: ${s.expected_date}`);
+          if (s.return_date) parts.push(`تاريخ العودة/النهاية: ${s.return_date}`);
           if (s.description) parts.push(`التفاصيل: ${s.description}`);
         }
         finalDescription = parts.join(" | ") || "بدون وصف";
@@ -1006,7 +1011,7 @@ export default function Bookings() {
                       </>
                     ) : (
                       <>
-                        <div className="grid grid-cols-3 gap-3 animate-fadeIn">
+                        <div className="grid grid-cols-4 gap-3 animate-fadeIn">
                           <div className="col-span-2">
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
                               بيانات الخدمة والوصف الكامل
@@ -1025,6 +1030,36 @@ export default function Bookings() {
                             />
                           </div>
                           <div>
+                            <label className="block text-[12px] font-semibold text-slate-600 mb-1">
+                              تاريخ الذهاب/البدء
+                            </label>
+                            <input
+                              value={service.expected_date || ""}
+                              onChange={(e) =>
+                                updateServiceItem(service.id, {
+                                  expected_date: e.target.value,
+                                })
+                              }
+                              type="date"
+                              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-700"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[12px] font-semibold text-slate-600 mb-1">
+                              تاريخ العودة/الانتهاء
+                            </label>
+                            <input
+                              value={service.return_date || ""}
+                              onChange={(e) =>
+                                updateServiceItem(service.id, {
+                                  return_date: e.target.value,
+                                })
+                              }
+                              type="date"
+                              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-700"
+                            />
+                          </div>
+                          <div className="col-span-4">
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
                               رمز الحجز (PNR / Ref)
                             </label>
