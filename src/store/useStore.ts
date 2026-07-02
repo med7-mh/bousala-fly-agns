@@ -133,7 +133,9 @@ interface AppState {
   ) => Promise<Customer | undefined>;
   updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
-  addSupplier: (supplier: Omit<Supplier, "id" | "agency_id">) => Promise<void>;
+  addSupplier: (
+    supplier: Omit<Supplier, "id" | "agency_id">,
+  ) => Promise<Supplier | undefined>;
   updateSupplier: (id: string, updates: Partial<Supplier>) => Promise<void>;
   deleteSupplier: (id: string) => Promise<void>;
   addEmployee: (
@@ -625,13 +627,13 @@ export const useStore = create<AppState>((set, get) => ({
 
   addSupplier: async (supplier) => {
     const { user, isSubscriptionExpired } = get();
-    if (!user) return;
+    if (!user) return undefined;
 
     if (isSubscriptionExpired()) {
       toast.error(
         "انتهت الفترة التجريبية. يرجى تفعيل الاشتراك لمواصلة إضافة بيانات.",
       );
-      return;
+      return undefined;
     }
 
     const toastId = toast.loading("جاري إضافة المورد...");
@@ -645,9 +647,11 @@ export const useStore = create<AppState>((set, get) => ({
     if (!error && data) {
       set((state) => ({ suppliers: [data, ...state.suppliers] }));
       toast.success("تمت إضافة المورد بنجاح", { id: toastId });
+      return data;
     } else {
       console.error(error);
       toast.error("حدث خطأ أثناء إضافة المورد", { id: toastId });
+      return undefined;
     }
   },
 

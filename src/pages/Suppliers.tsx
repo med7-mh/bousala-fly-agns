@@ -30,6 +30,7 @@ export default function Suppliers() {
     addSupplier,
     updateSupplier,
     deleteSupplier,
+    addTransaction,
     language,
     activeStaff,
   } = useStore();
@@ -79,7 +80,7 @@ export default function Suppliers() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const supplierData = {
@@ -92,7 +93,19 @@ export default function Suppliers() {
     if (editingSupplier) {
       updateSupplier(editingSupplier.id, supplierData);
     } else {
-      addSupplier(supplierData);
+      const newSup = await addSupplier(supplierData);
+      const initialBalanceStr = formData.get("initial_balance") as string;
+      const initialBalance = parseFloat(initialBalanceStr);
+      if (newSup && !isNaN(initialBalance) && initialBalance !== 0) {
+        await addTransaction({
+          supplier_id: newSup.id,
+          type: initialBalance > 0 ? "income" : "expense",
+          amount: Math.abs(initialBalance),
+          description: "رصيد افتتاحي للمورد",
+          payment_method: "رصيد افتتاحي",
+          date: new Date().toISOString().split("T")[0],
+        });
+      }
     }
 
     setIsModalOpen(false);
@@ -322,6 +335,25 @@ export default function Suppliers() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
                 ></textarea>
               </div>
+              {!editingSupplier && (
+                <div className="bg-amber-50/60 p-3 rounded-lg border border-amber-100 mt-2">
+                  <label className="block text-[13px] font-bold text-amber-800 mb-1">
+                    الرصيد الافتتاحي (اختياري)
+                  </label>
+                  <input
+                    name="initial_balance"
+                    type="number"
+                    step="any"
+                    placeholder="0"
+                    dir="ltr"
+                    className="w-full px-3 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-right text-sm bg-white font-mono font-semibold text-slate-800"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                    * قيمة موجبة (مثال: <span className="font-mono font-bold text-red-600">1000</span>) تعني أن للمورد مستحقات سابقة في ذمتنا.
+                    <br />* قيمة سالبة (مثال: <span className="font-mono font-bold text-emerald-600">-1000</span>) تعني أن لنا رصيد مسبق أو دفعة مقدمة لدى المورد.
+                  </p>
+                </div>
+              )}
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
