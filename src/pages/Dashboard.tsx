@@ -17,6 +17,7 @@ import {
   Clock,
   Printer,
   Download,
+  PlusCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -188,7 +189,7 @@ export default function Dashboard() {
 
       {/* POS Quick Buttons */}
       {selectedDate === new Date().toISOString().split("T")[0] && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <button
             onClick={() =>
               openQuickAction(
@@ -224,6 +225,25 @@ export default function Dashboard() {
             </div>
             <span className="font-semibold text-slate-800 text-sm">
               {t("photocopy", language)}
+            </span>
+          </button>
+
+          <button
+            onClick={() =>
+              openQuickAction(
+                language === "ar" ? "أخرى" : "Other",
+                "income",
+                0,
+                "",
+              )
+            }
+            className="bg-white border hover:border-emerald-500 border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all hover:shadow-md group"
+          >
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform mb-1">
+              <PlusCircle className="w-6 h-6" />
+            </div>
+            <span className="font-semibold text-slate-800 text-sm">
+              {language === "ar" ? "أخرى" : "Other"}
             </span>
           </button>
 
