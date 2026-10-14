@@ -7,6 +7,7 @@ import { Compass, Briefcase, User, Mail, Lock, Phone } from "lucide-react";
 
 export default function Signup() {
   const user = useStore((state) => state.user);
+  const login = useStore((state) => state.login);
   const navigate = useNavigate();
 
   const [agencyName, setAgencyName] = useState("");
@@ -50,9 +51,6 @@ export default function Signup() {
       if (!authData || !authData.user)
         throw new Error("فشل إنشاء الحساب أو حدث خطأ في الشبكة");
 
-      // If email confirmation is required, session might be null.
-      // But typically it's disabled. If it's disabled, we have a session.
-
       // 2. Generate an ID locally to avoid the RLS "SELECT" chicken-and-egg problem
       // Because we can't SELECT from agencies until our profile is created!
       const generateUUID = () => {
@@ -92,11 +90,26 @@ export default function Signup() {
 
       if (profileError) {
         console.error("Profile Creation Error:", profileError);
-        throw new Error("فشل في إنشاء الملف الشخصي (Profiles).");
+        throw new Error(
+          profileError.message
+            ? `فشل في إنشاء الملف الشخصي (${profileError.message})`
+            : "فشل في إنشاء الملف الشخصي (Profiles)."
+        );
       }
 
+      // 5. Update store state immediately
+      login({
+        id: authData.user.id,
+        agency_id: newAgencyId,
+        name: fullName,
+        role: "admin",
+        email: dummyEmail,
+        subscriptionPlan: "free",
+        subscriptionExpiresAt: null,
+        agencyCreatedAt: new Date().toISOString(),
+      });
+
       toast.success("تم إنشاء حساب الوكالة بنجاح! مرحباً بك");
-      // Successfully created everything, push to login or home
       navigate("/");
     } catch (err: any) {
       console.error(err);

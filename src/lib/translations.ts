@@ -177,6 +177,12 @@ export const translations = {
     no_customers: "لا يوجد عملاء",
     delete_confirmation: "تأكيد الحذف",
     cannot_undo: "هذا الإجراء لا يمكن التراجع عنه.",
+    included_services: "الخدمات المشمولة",
+    description_and_details: "الوصف والتفاصيل",
+    without_description: "بدون وصف",
+    edit_booking: "تعديل الحجز",
+    delete_booking: "حذف الحجز",
+    print: "طباعة",
 
     // Additional Keys
     total_bookings: "إجمالي الحجوزات",
@@ -426,6 +432,12 @@ export const translations = {
     no_customers: "Aucun client",
     delete_confirmation: "Confirmer la suppression",
     cannot_undo: "Cette action est irréversible.",
+    included_services: "Services Inclus",
+    description_and_details: "Description et Détails",
+    without_description: "Sans description",
+    edit_booking: "Modifier la réservation",
+    delete_booking: "Supprimer la réservation",
+    print: "Imprimer",
 
     // Additional Keys
     total_bookings: "Total des réservations",

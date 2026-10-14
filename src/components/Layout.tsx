@@ -20,8 +20,10 @@ import {
   FileBarChart2,
   Shield,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { supabase } from "../lib/supabase";
 
 export default function Layout() {
   const {
@@ -39,6 +41,11 @@ export default function Layout() {
   const [pinModalStaff, setPinModalStaff] = useState<any>(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
+  
+  const [showPrincipalPasswordModal, setShowPrincipalPasswordModal] = useState(false);
+  const [principalPasswordInput, setPrincipalPasswordInput] = useState("");
+  const [principalPasswordError, setPrincipalPasswordError] = useState("");
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
   const isExpired = isSubscriptionExpired();
   const [showExpiredModal, setShowExpiredModal] = useState(false);
@@ -231,7 +238,9 @@ export default function Layout() {
                   onChange={(e) => {
                     const selectedName = e.target.value;
                     if (!selectedName) {
-                      setActiveStaff(null);
+                      setShowPrincipalPasswordModal(true);
+                      setPrincipalPasswordInput("");
+                      setPrincipalPasswordError("");
                     } else {
                       const staff = staffMembers.find(
                         (s) => s.name === selectedName,
@@ -479,6 +488,112 @@ export default function Layout() {
                 className="flex-1 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
               >
                 {language === "ar" ? "دخول" : "Entrer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Principal Password Modal */}
+      {showPrincipalPasswordModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">
+              {language === "ar" ? "العودة للحساب الأساسي" : "Retour au compte principal"}
+            </h3>
+            <p className="text-sm text-slate-500 mb-6">
+              {language === "ar"
+                ? "أدخل كلمة المرور الخاصة بحسابك للعودة"
+                : "Entrez votre mot de passe pour revenir"}
+            </p>
+
+            <input
+              type="password"
+              autoFocus
+              value={principalPasswordInput}
+              onChange={(e) => {
+                setPrincipalPasswordInput(e.target.value);
+                setPrincipalPasswordError("");
+              }}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter" && principalPasswordInput) {
+                  setIsVerifyingPassword(true);
+                  setPrincipalPasswordError("");
+                  try {
+                    const { error } = await supabase.auth.signInWithPassword({
+                      email: user.email!,
+                      password: principalPasswordInput,
+                    });
+                    if (error) {
+                      setPrincipalPasswordError(
+                        language === "ar" ? "كلمة المرور غير صحيحة" : "Mot de passe incorrect"
+                      );
+                    } else {
+                      setActiveStaff(null);
+                      setShowPrincipalPasswordModal(false);
+                    }
+                  } catch (err) {
+                    setPrincipalPasswordError(
+                      language === "ar" ? "حدث خطأ" : "Une erreur est survenue"
+                    );
+                  } finally {
+                    setIsVerifyingPassword(false);
+                  }
+                }
+              }}
+              className={cn(
+                "w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:outline-none mb-4",
+                principalPasswordError
+                  ? "border-red-500 focus:ring-red-500"
+                  : "focus:ring-emerald-500"
+              )}
+            />
+            {principalPasswordError && (
+              <p className="text-xs text-red-500 mb-4">{principalPasswordError}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowPrincipalPasswordModal(false)}
+                className="flex-1 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                disabled={isVerifyingPassword}
+              >
+                {t("cancel", language)}
+              </button>
+              <button
+                onClick={async () => {
+                  if (!principalPasswordInput) return;
+                  setIsVerifyingPassword(true);
+                  setPrincipalPasswordError("");
+                  try {
+                    const { error } = await supabase.auth.signInWithPassword({
+                      email: user.email!,
+                      password: principalPasswordInput,
+                    });
+                    if (error) {
+                      setPrincipalPasswordError(
+                        language === "ar" ? "كلمة المرور غير صحيحة" : "Mot de passe incorrect"
+                      );
+                    } else {
+                      setActiveStaff(null);
+                      setShowPrincipalPasswordModal(false);
+                    }
+                  } catch (err) {
+                    setPrincipalPasswordError(
+                      language === "ar" ? "حدث خطأ" : "Une erreur est survenue"
+                    );
+                  } finally {
+                    setIsVerifyingPassword(false);
+                  }
+                }}
+                disabled={isVerifyingPassword}
+                className="flex-1 flex justify-center py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+              >
+                {isVerifyingPassword ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  language === "ar" ? "دخول" : "Entrer"
+                )}
               </button>
             </div>
           </div>

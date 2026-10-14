@@ -74,7 +74,7 @@ export default function VisaBookingModal({
   const [scannedPassport, setScannedPassport] = useState("");
 
   const [supplierId, setSupplierId] = useState("");
-  const [description, setDescription] = useState("تأشيرة");
+  const [description, setDescription] = useState(language === "fr" ? "Visa" : "تأشيرة");
   const [costPrice, setCostPrice] = useState<number | "">("");
   const [sellingPrice, setSellingPrice] = useState<number | "">("");
   const [advancePayment, setAdvancePayment] = useState<number | "">("");
@@ -464,10 +464,12 @@ export default function VisaBookingModal({
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-bold text-white">
-                إصدار تأشيرة السفر
+                {language === "fr" ? "Émission de Visa" : "إصدار تأشيرة السفر"}
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                سجل التأشيرة أو امسح صورة الجواز للإدخال السريع
+                {language === "fr"
+                  ? "Enregistrez le visa ou scannez le passeport pour une saisie rapide"
+                  : "سجل التأشيرة أو امسح صورة الجواز للإدخال السريع"}
               </p>
             </div>
           </div>
@@ -548,9 +550,13 @@ export default function VisaBookingModal({
                     {analyzeProgress}%
                   </div>
                 </div>
-                <h4 className="font-bold text-lg mb-1">جاري تحليل الصورة...</h4>
+                <h4 className="font-bold text-lg mb-1">
+                  {language === "fr" ? "Analyse de l'image en cours..." : "جاري تحليل الصورة..."}
+                </h4>
                 <p className="text-sm opacity-80">
-                  يتم استخراج البيانات باستخدام الذكاء الاصطناعي
+                  {language === "fr"
+                    ? "Extraction des données à l'aide de l'IA..."
+                    : "يتم استخراج البيانات باستخدام الذكاء الاصطناعي"}
                 </p>
               </div>
             ) : (
@@ -563,16 +569,20 @@ export default function VisaBookingModal({
                   </div>
                 </div>
                 <h4 className="font-bold text-slate-800 text-lg mb-1">
-                  اسحب وأفلت صورة الجواز هنا
+                  {language === "fr"
+                    ? "Glissez-déposez la photo du passeport ici"
+                    : "اسحب وأفلت صورة الجواز هنا"}
                 </h4>
                 <p className="text-slate-500 text-sm mb-4">
-                  أو انقر لاختيار ملف من جهازك. يدعم (JPG, PNG)
+                  {language === "fr"
+                    ? "Ou cliquez pour sélectionner un fichier (JPG, PNG)"
+                    : "أو انقر لاختيار ملف من جهازك. يدعم (JPG, PNG)"}
                 </p>
 
                 <div className="flex items-center w-full gap-4">
                   <div className="h-px bg-slate-200 flex-1"></div>
                   <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                    أو للسكانر السريع
+                    {language === "fr" ? "Ou scanner rapide" : "أو للسكانر السريع"}
                   </span>
                   <div className="h-px bg-slate-200 flex-1"></div>
                 </div>
@@ -592,8 +602,8 @@ export default function VisaBookingModal({
                 >
                   <ScanLine className="w-4 h-4" />
                   {scanMode
-                    ? "وضع القارئ السريع يعمل (جاهز للمسح)..."
-                    : "تفعيل قارئ MRZ السريع (الباركود)"}
+                    ? (language === "fr" ? "Lecteur MRZ actif (prêt au scan)..." : "وضع القارئ السريع يعمل (جاهز للمسح)...")
+                    : (language === "fr" ? "Activer le lecteur MRZ rapide" : "تفعيل قارئ MRZ السريع (الباركود)")}
                 </button>
               </div>
             )}
@@ -605,22 +615,24 @@ export default function VisaBookingModal({
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <UserPlus className="w-5 h-5 text-emerald-500" />
-                  <h4 className="font-bold text-slate-800">بيانات العميل</h4>
+                  <h4 className="font-bold text-slate-800">
+                    {language === "fr" ? "Informations du Client" : "بيانات العميل"}
+                  </h4>
                 </div>
 
                 {!scannedPassport ? (
                   <div className="space-y-4">
                     <div className="relative">
-                      <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <Search className={`w-4 h-4 absolute ${language === "ar" ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 text-slate-400`} />
                       <input
                         type="text"
-                        placeholder="ابحث لاختيار عميل موجود..."
+                        placeholder={language === "fr" ? "Rechercher un client existant..." : "ابحث لاختيار عميل موجود..."}
                         value={customerSearch}
                         onChange={(e) => {
                           setCustomerSearch(e.target.value);
                           setCustomerId("");
                         }}
-                        className="w-full pl-3 pr-9 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                        className={`w-full ${language === "ar" ? "pl-3 pr-9" : "pr-3 pl-9"} py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500`}
                       />
                     </div>
                     {customerSearch && !customerId && (
@@ -638,14 +650,14 @@ export default function VisaBookingModal({
                               <div className="font-semibold">{c.name}</div>
                               {c.passport_number && (
                                 <div className="text-xs text-slate-500">
-                                  جواز: {c.passport_number}
+                                  {language === "fr" ? "Passeport :" : "جواز:"} {c.passport_number}
                                 </div>
                               )}
                             </div>
                           ))
                         ) : (
                           <div className="p-3 text-sm text-slate-500 text-center">
-                            لا توجد نتائج
+                            {language === "fr" ? "Aucun résultat" : "لا توجد نتائج"}
                           </div>
                         )}
                       </div>
@@ -653,16 +665,16 @@ export default function VisaBookingModal({
 
                     {!customerSearch && !customerId && !isManualEntry && (
                       <div className="text-center p-4 border border-dashed border-slate-300 rounded-lg text-slate-500 text-sm bg-slate-50">
-                        الرجاء اختيار العميل للبدء
-                        <br />
-                        أو استخدم إسقاط الصورة للأعلى لاستخراج البيانات
+                        {language === "fr"
+                          ? "Veuillez sélectionner un client pour commencer ou glissez une photo de passeport ci-dessus"
+                          : "الرجاء اختيار العميل للبدء أو استخدم إسقاط الصورة للأعلى لاستخراج البيانات"}
                         <div className="mt-4 border-t border-slate-200 pt-3">
                           <button
                             type="button"
                             onClick={() => setIsManualEntry(true)}
                             className="text-blue-600 font-semibold text-sm hover:underline"
                           >
-                            + إضافة عميل جديد يدوياً
+                            {language === "fr" ? "+ Ajouter un client manuellement" : "+ إضافة عميل جديد يدوياً"}
                           </button>
                         </div>
                       </div>
@@ -673,21 +685,21 @@ export default function VisaBookingModal({
                         <button
                           type="button"
                           onClick={() => setIsManualEntry(false)}
-                          className="absolute top-3 left-3 text-slate-500 hover:text-slate-700"
+                          className={`absolute top-3 ${language === "ar" ? "left-3" : "right-3"} text-slate-500 hover:text-slate-700`}
                         >
                           <X className="w-4 h-4" />
                         </button>
                         <div className="font-bold text-blue-900 border-b border-blue-200 pb-2 mb-2">
-                          إضافة بيانات العميل يدوياً
+                          {language === "fr" ? "Ajouter les données client manuellement" : "إضافة بيانات العميل يدوياً"}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-xs text-slate-600 block mb-1">
-                              الاسم الأول *
+                              {language === "fr" ? "Prénom *" : "الاسم الأول *"}
                             </label>
                             <input
                               type="text"
-                              placeholder="محمد..."
+                              placeholder={language === "fr" ? "Mohamed..." : "محمد..."}
                               value={manualGivenNames}
                               onChange={(e) =>
                                 setManualGivenNames(e.target.value)
@@ -698,11 +710,11 @@ export default function VisaBookingModal({
                           </div>
                           <div>
                             <label className="text-xs text-slate-600 block mb-1">
-                              اسم العائلة *
+                              {language === "fr" ? "Nom de famille *" : "اسم العائلة *"}
                             </label>
                             <input
                               type="text"
-                              placeholder="الغامدي..."
+                              placeholder={language === "fr" ? "Fall..." : "الغامدي..."}
                               value={manualSurname}
                               onChange={(e) => setManualSurname(e.target.value)}
                               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -712,7 +724,7 @@ export default function VisaBookingModal({
                         </div>
                         <div>
                           <label className="text-xs text-slate-600 block mb-1">
-                            رقم الجواز / الهوية
+                            {language === "fr" ? "N° Passeport / NNI" : "رقم الجواز / الهوية"}
                           </label>
                           <input
                             type="text"
@@ -725,11 +737,11 @@ export default function VisaBookingModal({
                         </div>
                         <div>
                           <label className="text-xs text-slate-600 block mb-1">
-                            رقم الجوال
+                            {language === "fr" ? "N° Téléphone" : "رقم الجوال"}
                           </label>
                           <input
                             type="text"
-                            placeholder="0500000000"
+                            placeholder="46000000"
                             value={manualPhone}
                             onChange={(e) => setManualPhone(e.target.value)}
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -741,7 +753,7 @@ export default function VisaBookingModal({
 
                     {customerId && customerId !== "new" && (
                       <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg flex justify-between items-center text-sm font-semibold">
-                        <span>العميل: {customerSearch}</span>
+                        <span>{language === "fr" ? "Client :" : "العميل:"} {customerSearch}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -750,7 +762,7 @@ export default function VisaBookingModal({
                           }}
                           className="text-emerald-600 hover:text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded"
                         >
-                          تغيير
+                          {language === "fr" ? "Changer" : "تغيير"}
                         </button>
                       </div>
                     )}
@@ -759,11 +771,11 @@ export default function VisaBookingModal({
                   <div className="space-y-3 bg-blue-50 border border-blue-200 p-4 rounded-xl relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 bg-blue-500 h-full"></div>
                     <div className="font-bold text-blue-900 border-b border-blue-200 pb-2 mb-2">
-                      بيانات الجواز المستخرجة
+                      {language === "fr" ? "Données extraites du passeport" : "بيانات الجواز المستخرجة"}
                     </div>
                     <div>
                       <div className="text-xs text-blue-700 mb-1 font-semibold">
-                        الاسم الأول (Given Names)
+                        {language === "fr" ? "Prénom (Given Names)" : "الاسم الأول (Given Names)"}
                       </div>
                       <div
                         className="font-mono bg-white px-2 py-1 border border-blue-100 rounded text-slate-800"
@@ -774,7 +786,7 @@ export default function VisaBookingModal({
                     </div>
                     <div>
                       <div className="text-xs text-blue-700 mb-1 font-semibold">
-                        اسم العائلة (Surname)
+                        {language === "fr" ? "Nom de famille (Surname)" : "اسم العائلة (Surname)"}
                       </div>
                       <div
                         className="font-mono bg-white px-2 py-1 border border-blue-100 rounded text-slate-800"
@@ -785,7 +797,7 @@ export default function VisaBookingModal({
                     </div>
                     <div>
                       <div className="text-xs text-blue-700 mb-1 font-semibold">
-                        رقم الجواز (Passport No.)
+                        {language === "fr" ? "N° Passeport (Passport No.)" : "رقم الجواز (Passport No.)"}
                       </div>
                       <div
                         className="font-mono bg-white px-2 py-1 border border-blue-100 rounded text-slate-800"
@@ -804,7 +816,7 @@ export default function VisaBookingModal({
                       }}
                       className="w-full mt-2 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold rounded-lg text-sm transition-colors"
                     >
-                      إلغاء وإعادة المحاولة
+                      {language === "fr" ? "Annuler et recommencer" : "إلغاء وإعادة المحاولة"}
                     </button>
                   </div>
                 )}
@@ -815,20 +827,20 @@ export default function VisaBookingModal({
                 <div className="flex items-center gap-2 mb-4">
                   <CreditCard className="w-5 h-5 text-purple-500" />
                   <h4 className="font-bold text-slate-800">
-                    بيانات العملية المالية
+                    {language === "fr" ? "Détails Financiers" : "بيانات العملية المالية"}
                   </h4>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    المورد ( السفارة / الوكيل )
+                    {language === "fr" ? "Fournisseur (Ambassade / Agent)" : "المورد ( السفارة / الوكيل )"}
                   </label>
                   <select
                     value={supplierId}
                     onChange={(e) => setSupplierId(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 bg-white"
                   >
-                    <option value="">-- اختر المورد --</option>
+                    <option value="">{language === "fr" ? "-- Choisir le fournisseur --" : "-- اختر المورد --"}</option>
                     {visaSuppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -839,21 +851,21 @@ export default function VisaBookingModal({
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    بيان التأشيرة (أرقام التأشيرة أو نوعها)
+                    {language === "fr" ? "Description du visa (Type / N°)" : "بيان التأشيرة (أرقام التأشيرة أو نوعها)"}
                   </label>
                   <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
-                    placeholder="مثال: تأشيرة عمل - السعودية..."
+                    placeholder={language === "fr" ? "Ex: Visa travail, Visa tourisme..." : "مثال: تأشيرة عمل - السعودية..."}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-red-600 mb-1">
-                      سعر التكلفة *
+                      {language === "fr" ? "Prix d'achat (Coût) *" : "سعر التكلفة *"}
                     </label>
                     <input
                       type="number"
@@ -871,7 +883,7 @@ export default function VisaBookingModal({
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-emerald-600 mb-1">
-                      سعر البيع *
+                      {language === "fr" ? "Prix de vente *" : "سعر البيع *"}
                     </label>
                     <input
                       type="number"
@@ -892,7 +904,7 @@ export default function VisaBookingModal({
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-2">
                   <div className="flex justify-between items-center mb-3">
                     <label className="text-sm font-bold text-slate-700">
-                      استلام دفعة مقدمة الآن (عربون)
+                      {language === "fr" ? "Acompte perçu maintenant" : "استلام دفعة مقدمة الآن (عربون)"}
                     </label>
                   </div>
                   <div className="grid grid-cols-5 gap-3">
@@ -900,7 +912,7 @@ export default function VisaBookingModal({
                       <input
                         type="number"
                         min="0"
-                        placeholder="المبلغ المستلم"
+                        placeholder={language === "fr" ? "Montant reçu" : "المبلغ المستلم"}
                         value={advancePayment}
                         onChange={(e) =>
                           setAdvancePayment(
@@ -922,14 +934,14 @@ export default function VisaBookingModal({
                             {method.label}
                           </option>
                         ))}
-                        <option value="other">أخرى</option>
+                        <option value="other">{language === "fr" ? "Autre" : "أخرى"}</option>
                       </select>
                     </div>
                   </div>
                   {Number(sellingPrice) > 0 && Number(advancePayment) > 0 && (
                     <div className="mt-2 text-xs font-semibold flex justify-between bg-white px-2 py-1.5 border border-slate-100 rounded">
                       <span className="text-slate-500">
-                        المتبقي على العميل:
+                        {language === "fr" ? "Reste dû par le client :" : "المتبقي على العميل:"}
                       </span>
                       <span className="text-red-500">
                         {Number(sellingPrice) - Number(advancePayment)}
@@ -948,7 +960,7 @@ export default function VisaBookingModal({
             onClick={onClose}
             className="px-6 py-2.5 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors"
           >
-            إلغاء
+            {language === "fr" ? "Annuler" : "إلغاء"}
           </button>
           <button
             type="submit"
@@ -958,10 +970,10 @@ export default function VisaBookingModal({
           >
             {isSubmitting ? (
               <>
-                <RefreshCw className="w-5 h-5 animate-spin" /> جاري الحفظ...
+                <RefreshCw className="w-5 h-5 animate-spin" /> {language === "fr" ? "Enregistrement..." : "جاري الحفظ..."}
               </>
             ) : (
-              "حفظ وإصدار"
+              language === "fr" ? "Enregistrer et émettre" : "حفظ وإصدار"
             )}
           </button>
         </div>

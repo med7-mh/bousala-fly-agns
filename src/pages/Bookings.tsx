@@ -422,21 +422,21 @@ export default function Bookings() {
   };
 
   const typeLabels: Record<string, string> = {
-    flight: "طيران",
-    hotel: "فندق",
-    visa: "تأشيرة",
-    tour: "جولة سياحية",
-    passport: "جواز سفر",
+    flight: language === "fr" ? "Vol" : "طيران",
+    hotel: language === "fr" ? "Hôtel" : "فندق",
+    visa: language === "fr" ? "Visa" : "تأشيرة",
+    tour: language === "fr" ? "Circuit touristique" : "جولة سياحية",
+    passport: language === "fr" ? "Passeport" : "جواز سفر",
   };
 
   const statusLabels: Record<BookingStatus, string> = {
-    pending: "معلق",
-    confirmed: "مؤكد",
-    cancelled: "ملغي",
-    documents_received: "استلام المستندات",
-    processing: "قيد المعالجة",
-    ready: "جاهز للاستلام",
-    delivered: "تم التسليم",
+    pending: language === "fr" ? "En attente" : "معلق",
+    confirmed: language === "fr" ? "Confirmé" : "مؤكد",
+    cancelled: language === "fr" ? "Annulé" : "ملغي",
+    documents_received: language === "fr" ? "Docs reçus" : "استلام المستندات",
+    processing: language === "fr" ? "En traitement" : "قيد المعالجة",
+    ready: language === "fr" ? "Prêt à récupérer" : "جاهز للاستلام",
+    delivered: language === "fr" ? "Délivré" : "تم التسليم",
   };
 
   const getStatusColor = (status: BookingStatus) => {
@@ -464,11 +464,11 @@ export default function Bookings() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className={`w-4 h-4 absolute ${language === "ar" ? "right-4" : "left-4"} top-1/2 -translate-y-1/2 text-slate-400`} />
             <input
               type="text"
               placeholder={t("search_booking", language)}
-              className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
+              className={`bg-slate-100 rounded-full ${language === "ar" ? "pr-10 pl-4" : "pl-10 pr-4"} py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -509,7 +509,7 @@ export default function Bookings() {
         className="print-section bg-white rounded-xl border border-slate-200 p-5 flex flex-col shadow-sm"
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse">
+          <table className={`w-full ${language === "ar" ? "text-right" : "text-left"} border-collapse`}>
             <thead>
               <tr className="border-[0px]">
                 <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">
@@ -522,10 +522,10 @@ export default function Bookings() {
                   {t("customer", language)}
                 </th>
                 <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">
-                  الخدمات المشمولة
+                  {t("included_services", language)}
                 </th>
                 <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">
-                  الوصف والتفاصيل
+                  {t("description_and_details", language)}
                 </th>
                 <th className="py-3 px-2 border-b-2 border-slate-100 text-slate-400 text-[13px] font-semibold whitespace-nowrap">
                   {t("cost", language)}
@@ -603,14 +603,14 @@ export default function Bookings() {
                           {parsedMulti.map((srv, idx) => (
                             <div
                               key={idx}
-                              className="text-[12px] text-slate-600 border-r-2 border-emerald-400 pr-2 py-0.5 bg-slate-50/50 p-1.5 rounded-md"
+                              className={`text-[12px] text-slate-600 ${language === "ar" ? "border-r-2 pr-2" : "border-l-2 pl-2"} border-emerald-400 py-0.5 bg-slate-50/50 p-1.5 rounded-md`}
                             >
                               <span className="font-bold text-slate-700">
                                 ({typeLabels[srv.type] || srv.type}):
                               </span>{" "}
-                              <span>{srv.description || "بدون وصف"}</span>
+                              <span>{srv.description || (language === "fr" ? "Sans description" : "بدون وصف")}</span>
                               {srv.pnr && (
-                                <span className="mr-2 text-[10px] bg-blue-50 text-blue-700 px-1 py-0.1 select-all font-mono rounded">
+                                <span className={`${language === "ar" ? "mr-2" : "ml-2"} text-[10px] bg-blue-50 text-blue-700 px-1 py-0.1 select-all font-mono rounded`}>
                                   PNR: {srv.pnr}
                                 </span>
                               )}
@@ -671,32 +671,46 @@ export default function Bookings() {
                           {booking.type === "passport" ? (
                             <>
                               <option value="documents_received">
-                                استلام المستندات
+                                {language === "fr" ? "Docs reçus" : "استلام المستندات"}
                               </option>
-                              <option value="processing">قيد المعالجة</option>
-                              <option value="ready">جاهز للاستلام</option>
-                              <option value="delivered">تم التسليم</option>
-                              <option value="cancelled">ملغي</option>
+                              <option value="processing">
+                                {language === "fr" ? "En traitement" : "قيد المعالجة"}
+                              </option>
+                              <option value="ready">
+                                {language === "fr" ? "Prêt à récupérer" : "جاهز للاستلام"}
+                              </option>
+                              <option value="delivered">
+                                {language === "fr" ? "Livré" : "تم التسليم"}
+                              </option>
+                              <option value="cancelled">
+                                {language === "fr" ? "Annulé" : "ملغي"}
+                              </option>
                             </>
                           ) : (
                             <>
-                              <option value="pending">معلق</option>
-                              <option value="confirmed">مؤكد</option>
-                              <option value="cancelled">ملغي</option>
+                              <option value="pending">
+                                {language === "fr" ? "En attente" : "معلق"}
+                              </option>
+                              <option value="confirmed">
+                                {language === "fr" ? "Confirmé" : "مؤكد"}
+                              </option>
+                              <option value="cancelled">
+                                {language === "fr" ? "Annulé" : "ملغي"}
+                              </option>
                             </>
                           )}
                         </select>
                         <button
                           onClick={() => handleOpenEditModal(booking)}
                           className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                          title="تعديل الحجز"
+                          title={t("edit_booking", language)}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setBookingToDelete(booking)}
                           className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-                          title="حذف الحجز"
+                          title={t("delete_booking", language)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -705,6 +719,18 @@ export default function Bookings() {
                   </tr>
                 );
               })}
+              {filteredBookings.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={10}
+                    className="py-12 text-center text-slate-400 text-sm font-medium"
+                  >
+                    {language === "fr"
+                      ? "Aucune réservation trouvée"
+                      : "لا توجد حجوزات مسجلة"}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -717,8 +743,8 @@ export default function Bookings() {
             <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
               <h3 className="text-[17px] font-bold text-slate-800">
                 {editingBooking
-                  ? "تعديل الحجز وتفاصيل الخدمات"
-                  : "إضافة حجز جديد (متعدد الخدمات)"}
+                  ? (language === "fr" ? "Modifier la réservation et services" : "تعديل الحجز وتفاصيل الخدمات")
+                  : (language === "fr" ? "Nouvelle réservation (Multi-services)" : "إضافة حجز جديد (متعدد الخدمات)")}
               </h3>
               <button
                 type="button"
@@ -749,7 +775,7 @@ export default function Bookings() {
                     name="customer_id"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white cursor-pointer"
                   >
-                    <option value="">اختر العميل...</option>
+                    <option value="">{language === "fr" ? "Sélectionner un client..." : "اختر العميل..."}</option>
                     <option value="new" className="text-emerald-600 font-bold">
                       {t("new_customer", language)}
                     </option>
@@ -771,6 +797,7 @@ export default function Bookings() {
                         required
                         name="new_customer_name"
                         type="text"
+                        placeholder={language === "fr" ? "Nom complet..." : "الاسم الكامل..."}
                         className="w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"
                       />
                     </div>
@@ -783,7 +810,8 @@ export default function Bookings() {
                         name="new_customer_phone"
                         type="tel"
                         dir="ltr"
-                        className="w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-right text-sm"
+                        placeholder="Ex: 46000000"
+                        className={`w-full px-3 py-1.5 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none ${language === "ar" ? "text-right" : "text-left"} text-sm`}
                       />
                     </div>
                   </div>
@@ -794,14 +822,15 @@ export default function Bookings() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center bg-slate-100/50 px-3 py-2 rounded-lg">
                   <span className="text-xs font-bold text-slate-600">
-                    جدول الخدمات المسجلة في هذا الحجز
+                    {language === "fr" ? "Tableau des services inclus dans ce dossier" : "جدول الخدمات المسجلة في هذا الحجز"}
                   </span>
                   <button
                     type="button"
                     onClick={addServiceItem}
                     className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-md flex items-center gap-1 transition-colors"
                   >
-                    <Plus className="w-3.5 h-3.5" />+ إضافة خدمة للحجز
+                    <Plus className="w-3.5 h-3.5" />
+                    {language === "fr" ? "+ Ajouter un service" : "+ إضافة خدمة للحجز"}
                   </button>
                 </div>
 
@@ -812,7 +841,7 @@ export default function Bookings() {
                   >
                     <div className="flex justify-between items-center pb-2 border-b border-slate-200/50">
                       <span className="text-[13px] font-bold text-slate-700">
-                        الخدمة #{index + 1}
+                        {language === "fr" ? `Service #${index + 1}` : `الخدمة #${index + 1}`}
                       </span>
                       {formServices.length > 1 && (
                         <button
@@ -821,7 +850,7 @@ export default function Bookings() {
                           className="p-1 px-2 text-rose-500 hover:bg-rose-50 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          حذف الخدمة
+                          {language === "fr" ? "Supprimer le service" : "حذف الخدمة"}
                         </button>
                       )}
                     </div>
@@ -829,7 +858,7 @@ export default function Bookings() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                          نوع الخدمة المشمولة
+                          {language === "fr" ? "Type de service inclus" : "نوع الخدمة المشمولة"}
                         </label>
                         <div className="flex gap-1.5">
                           <select
@@ -841,11 +870,11 @@ export default function Bookings() {
                             }
                             className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                           >
-                            <option value="flight">طيران</option>
-                            <option value="hotel">فندق</option>
-                            <option value="visa">تأشيرة</option>
-                            <option value="tour">جولة سياحية</option>
-                            <option value="passport">جواز سفر</option>
+                            <option value="flight">{language === "fr" ? "Vol" : "طيران"}</option>
+                            <option value="hotel">{language === "fr" ? "Hôtel" : "فندق"}</option>
+                            <option value="visa">{language === "fr" ? "Visa" : "تأشيرة"}</option>
+                            <option value="tour">{language === "fr" ? "Circuit touristique" : "جولة سياحية"}</option>
+                            <option value="passport">{language === "fr" ? "Passeport" : "جواز سفر"}</option>
                             {customBookingTypes.map((type) => (
                               <option key={type} value={type}>
                                 {type}
@@ -856,7 +885,9 @@ export default function Bookings() {
                             type="button"
                             onClick={() => {
                               const name = prompt(
-                                "أدخل اسم الخدمة المخصصة الجديدة (مثال: تأمين صحي، شحن بري):",
+                                language === "fr"
+                                  ? "Entrez le nom du nouveau service personnalisé (ex: Assurance voyage, Fret) :"
+                                  : "أدخل اسم الخدمة المخصصة الجديدة (مثال: تأمين صحي، شحن بري):",
                               );
                               if (name && name.trim()) {
                                 addCustomBookingType(name.trim());
@@ -866,16 +897,16 @@ export default function Bookings() {
                               }
                             }}
                             className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold"
-                            title="إضافة نوع مخصص للوكالة"
+                            title={language === "fr" ? "Ajouter un type personnalisé" : "إضافة نوع مخصص للوكالة"}
                           >
-                            + مخصص
+                            {language === "fr" ? "+ Personnalisé" : "+ مخصص"}
                           </button>
                         </div>
                       </div>
 
                       <div>
                         <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                          المورد (Suppliers)
+                          {language === "fr" ? "Fournisseur" : "المورد (Suppliers)"}
                         </label>
                         <select
                           value={service.supplier_id || ""}
@@ -886,7 +917,7 @@ export default function Bookings() {
                           }
                           className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
                         >
-                          <option value="">لا يوجد...</option>
+                          <option value="">{language === "fr" ? "Aucun..." : "لا يوجد..."}</option>
                           {suppliers.map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name}
@@ -902,7 +933,7 @@ export default function Bookings() {
                         <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                           <div>
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                              الرقم الوطني
+                              {language === "fr" ? "Numéro National (NNI)" : "الرقم الوطني"}
                             </label>
                             <input
                               value={service.national_id || ""}
@@ -912,14 +943,14 @@ export default function Bookings() {
                                 })
                               }
                               type="text"
-                              placeholder="رقم الهوية الوطنية للعميل"
+                              placeholder={language === "fr" ? "Numéro national d'identité" : "رقم الهوية الوطنية للعميل"}
                               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                             />
                           </div>
                           {service.type === "visa" ? (
                             <div>
                               <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                                رقم جواز السفر
+                                {language === "fr" ? "Numéro de passeport" : "رقم جواز السفر"}
                               </label>
                               <input
                                 value={service.passport_number || ""}
@@ -929,14 +960,14 @@ export default function Bookings() {
                                   })
                                 }
                                 type="text"
-                                placeholder="رقم جواز السفر"
+                                placeholder={language === "fr" ? "Numéro de passeport" : "رقم جواز السفر"}
                                 className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                               />
                             </div>
                           ) : (
                             <div>
                               <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                                رقم الإيصال الإداري
+                                {language === "fr" ? "Numéro de reçu administratif" : "رقم الإيصال الإداري"}
                               </label>
                               <input
                                 value={service.receipt_number || ""}
@@ -946,7 +977,7 @@ export default function Bookings() {
                                   })
                                 }
                                 type="text"
-                                placeholder="رقم المعاملة في الإدارة"
+                                placeholder={language === "fr" ? "Numéro de dossier / transaction" : "رقم المعاملة في الإدارة"}
                                 className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                               />
                             </div>
@@ -956,7 +987,7 @@ export default function Bookings() {
                           {service.type === "visa" && (
                             <div>
                               <label className="block text-[12px] font-semibold text-slate-600 mb-1 font-medium">
-                                رقم الإيصال
+                                {language === "fr" ? "Numéro de reçu" : "رقم الإيصال"}
                               </label>
                               <input
                                 value={service.receipt_number || ""}
@@ -966,7 +997,7 @@ export default function Bookings() {
                                   })
                                 }
                                 type="text"
-                                placeholder="رقم المعاملة"
+                                placeholder={language === "fr" ? "Numéro de transaction / reçu" : "رقم المعاملة"}
                                 className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                               />
                             </div>
@@ -977,7 +1008,7 @@ export default function Bookings() {
                             }
                           >
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                              تاريخ الاستلام المتوقع والجاهزية
+                              {language === "fr" ? "Date de réception prévue" : "تاريخ الاستلام المتوقع والجاهزية"}
                             </label>
                             <input
                               value={service.expected_date || ""}
@@ -993,7 +1024,7 @@ export default function Bookings() {
                         </div>
                         <div>
                           <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                            ملاحظات إضافية على الخدمة
+                            {language === "fr" ? "Remarques additionnelles" : "ملاحظات إضافية على الخدمة"}
                           </label>
                           <input
                             required
@@ -1004,7 +1035,7 @@ export default function Bookings() {
                               })
                             }
                             type="text"
-                            placeholder="مثال: استخراج لأول مرة، مستعجل"
+                            placeholder={language === "fr" ? "Ex: Première demande, urgent..." : "مثال: استخراج لأول مرة، مستعجل"}
                             className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
@@ -1014,7 +1045,7 @@ export default function Bookings() {
                         <div className="grid grid-cols-4 gap-3 animate-fadeIn">
                           <div className="col-span-2">
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                              بيانات الخدمة والوصف الكامل
+                              {language === "fr" ? "Détails et description complète" : "بيانات الخدمة والوصف الكامل"}
                             </label>
                             <input
                               required
@@ -1025,13 +1056,13 @@ export default function Bookings() {
                                 })
                               }
                               type="text"
-                              placeholder="مثال: تفاصيل الطيران نواكشوط - تونس فندق 5 نجوم"
+                              placeholder={language === "fr" ? "Ex: Vol Nouakchott - Tunis, Hôtel 5 étoiles..." : "مثال: تفاصيل الطيران نواكشوط - تونس فندق 5 نجوم"}
                               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                             />
                           </div>
                           <div>
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                              تاريخ الذهاب/البدء
+                              {language === "fr" ? "Date de départ" : "تاريخ الذهاب/البدء"}
                             </label>
                             <input
                               value={service.expected_date || ""}
@@ -1046,7 +1077,7 @@ export default function Bookings() {
                           </div>
                           <div>
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                              تاريخ العودة/الانتهاء
+                              {language === "fr" ? "Date de retour" : "تاريخ العودة/الانتهاء"}
                             </label>
                             <input
                               value={service.return_date || ""}
@@ -1061,7 +1092,7 @@ export default function Bookings() {
                           </div>
                           <div className="col-span-4">
                             <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                              رمز الحجز (PNR / Ref)
+                              {language === "fr" ? "Code de réservation (PNR / Réf)" : "رمز الحجز (PNR / Ref)"}
                             </label>
                             <input
                               value={service.pnr || ""}
@@ -1071,7 +1102,7 @@ export default function Bookings() {
                                 })
                               }
                               type="text"
-                              placeholder="اختياري"
+                              placeholder={language === "fr" ? "Optionnel" : "اختياري"}
                               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             />
                           </div>
@@ -1083,7 +1114,7 @@ export default function Bookings() {
                     <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/30">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-500 mb-0.5">
-                          تكلفة الخدمة (Cost)
+                          {language === "fr" ? "Coût du service (Achat)" : "تكلفة الخدمة (Cost)"}
                         </label>
                         <input
                           required
@@ -1101,7 +1132,7 @@ export default function Bookings() {
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-500 mb-0.5">
-                          سعر البيع للعميل (Selling)
+                          {language === "fr" ? "Prix de vente au client" : "سعر البيع للعميل (Selling)"}
                         </label>
                         <input
                           required
@@ -1127,12 +1158,13 @@ export default function Bookings() {
                 <div
                   className={`p-4 rounded-xl text-sm flex justify-between font-bold border ${sellingPrice - costPrice >= 0 ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-red-50 border-red-100 text-red-800"}`}
                 >
-                  <span>إجمالي الحجز المجمع:</span>
+                  <span>{language === "fr" ? "Total de la réservation :" : "إجمالي الحجز المجمع:"}</span>
                   <div className="flex gap-4">
-                    <span>التكلفة: {formatCurrency(costPrice)}</span>
-                    <span>البيع: {formatCurrency(sellingPrice)}</span>
+                    <span>{language === "fr" ? "Coût : " : "التكلفة: "}{formatCurrency(costPrice)}</span>
+                    <span>{language === "fr" ? "Vente : " : "البيع: "}{formatCurrency(sellingPrice)}</span>
                     <span>
-                      الربح الإجمالي: {formatCurrency(sellingPrice - costPrice)}
+                      {language === "fr" ? "Bénéfice total : " : "الربح الإجمالي: "}
+                      {formatCurrency(sellingPrice - costPrice)}
                     </span>
                   </div>
                 </div>
@@ -1153,7 +1185,7 @@ export default function Bookings() {
                       onChange={(e) =>
                         setAdvancePayment(Number(e.target.value))
                       }
-                      placeholder="المبلغ المدفوع كدفعة أولى (اختياري)"
+                      placeholder={language === "fr" ? "Montant versé en acompte (optionnel)" : "المبلغ المدفوع كدفعة أولى (اختياري)"}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white"
                     />
                   </div>
@@ -1174,13 +1206,14 @@ export default function Bookings() {
                             {method.label}
                           </option>
                         ))}
-                        <option value="other">أخرى</option>
+                        <option value="other">{language === "fr" ? "Autre" : "أخرى"}</option>
                       </select>
                     </div>
                   )}
                   <p className="text-[11px] text-slate-500">
-                    سيتم تلقائياً إصدار سند قبض مالي بهذا المبلغ وسيكون الحجز
-                    مدفوعاً جزئياً.
+                    {language === "fr"
+                      ? "Un reçu d'encaissement sera automatiquement créé pour ce montant et le dossier sera partiellement payé."
+                      : "سيتم تلقائياً إصدار سند قبض مالي بهذا المبلغ وسيكون الحجز مدفوعاً جزئياً."}
                   </p>
                 </div>
               )}
@@ -1188,7 +1221,7 @@ export default function Bookings() {
               {/* General Booking status */}
               <div>
                 <label className="block text-[13px] font-bold text-slate-700 mb-1">
-                  الحالة الإجمالية للحجز
+                  {language === "fr" ? "Statut global de la réservation" : "الحالة الإجمالية للحجز"}
                 </label>
                 <select
                   defaultValue={editingBooking?.status}
@@ -1196,9 +1229,9 @@ export default function Bookings() {
                   name="status"
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm bg-white cursor-pointer"
                 >
-                  <option value="pending">معلق (Pending)</option>
-                  <option value="confirmed">مؤكد (Confirmed)</option>
-                  <option value="cancelled">ملغي (Cancelled)</option>
+                  <option value="pending">{language === "fr" ? "En attente (Pending)" : "معلق (Pending)"}</option>
+                  <option value="confirmed">{language === "fr" ? "Confirmé (Confirmed)" : "مؤكد (Confirmed)"}</option>
+                  <option value="cancelled">{language === "fr" ? "Annulé (Cancelled)" : "ملغي (Cancelled)"}</option>
                 </select>
               </div>
 
@@ -1212,15 +1245,15 @@ export default function Bookings() {
                   }}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
-                  إلغاء
+                  {language === "fr" ? "Annuler" : "إلغاء"}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-md shadow-emerald-250"
                 >
                   {editingBooking
-                    ? "حفظ الحجز المعدل"
-                    : "تأكيد وحفظ الحجز المجمع"}
+                    ? (language === "fr" ? "Enregistrer les modifications" : "حفظ الحجز المعدل")
+                    : (language === "fr" ? "Confirmer et enregistrer" : "تأكيد وحفظ الحجز المجمع")}
                 </button>
               </div>
             </form>
@@ -1231,19 +1264,25 @@ export default function Bookings() {
       {/* Delete Confirmation Modal */}
       {bookingToDelete && (
         <div className="fixed inset-0 bg-slate-800/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-slate-200 shadow-xl" dir={language === "ar" ? "rtl" : "ltr"}>
             <div className="flex items-center gap-3 text-red-600 mb-4">
               <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-[17px] font-bold">تأكيد الحذف</h3>
+              <h3 className="text-[17px] font-bold">
+                {language === "fr" ? "Confirmer la suppression" : "تأكيد الحذف"}
+              </h3>
             </div>
             <p className="text-slate-600 text-sm mb-6">
-              هل أنت متأكد من حذف الحجز رقم{" "}
+              {language === "fr"
+                ? "Êtes-vous sûr de vouloir supprimer la réservation n° "
+                : "هل أنت متأكد من حذف الحجز رقم "}
               <strong>
                 #{bookingToDelete.id.substring(0, 8).toUpperCase()}
               </strong>
               ؟<br />
               <span className="text-[12px] text-slate-500">
-                هذا الإجراء لا يمكن التراجع عنه.
+                {language === "fr"
+                  ? "Cette action est irréversible."
+                  : "هذا الإجراء لا يمكن التراجع عنه."}
               </span>
             </p>
             <div className="flex justify-end gap-3">
@@ -1251,13 +1290,13 @@ export default function Bookings() {
                 onClick={() => setBookingToDelete(null)}
                 className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                إلغاء
+                {language === "fr" ? "Annuler" : "إلغاء"}
               </button>
               <button
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                حذف الحجز
+                {language === "fr" ? "Supprimer la réservation" : "حذف الحجز"}
               </button>
             </div>
           </div>

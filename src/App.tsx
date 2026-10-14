@@ -67,7 +67,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
           } else if (error && isSubscribed) {
             console.error("Auth Guard Profile Error:", error);
             if (error.code === 'PGRST116') {
-              await supabase.auth.signOut();
+              const isSignup = window.location.pathname.includes('signup') || window.location.hash.includes('signup');
+              if (!isSignup) {
+                await supabase.auth.signOut().catch(() => {});
+              }
               useStore.setState({ user: null, customers: [], bookings: [], transactions: [], isLoading: false });
             }
           }
@@ -112,8 +115,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
             } else if (error) {
               console.error("Auth Guard Profile Error on Change:", error);
               if (error.code === 'PGRST116') {
-                // Do not await signOut here to prevent Supabase GoTrue lock deadlock
-                supabase.auth.signOut().catch(() => {});
+                const isSignup = window.location.pathname.includes('signup') || window.location.hash.includes('signup');
+                // Never sign out during signup or on SIGNED_IN event where profile is being inserted
+                if (!isSignup && event !== 'SIGNED_IN') {
+                  supabase.auth.signOut().catch(() => {});
+                }
                 useStore.setState({ user: null, customers: [], bookings: [], transactions: [], isLoading: false });
               }
             }

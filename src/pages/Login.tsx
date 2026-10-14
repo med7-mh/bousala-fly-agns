@@ -57,8 +57,40 @@ export default function Login() {
         .single();
 
       if (profileError) {
-        // If profile is missing (RLS issue during signup)
+        // If profile is missing (due to an interrupted signup)
         if (profileError.code === "PGRST116") {
+          console.warn("Missing profile detected during login. Attempting automatic recovery...");
+          const newAgencyId = typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+                const r = (Math.random() * 16) | 0, v = c === "x" ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+              });
+          
+          await supabase.from("agencies").insert([{ id: newAgencyId, name: "وكالة جديدة" }]);
+          const { error: healError } = await supabase.from("profiles").insert([{
+            id: data.user.id,
+            agency_id: newAgencyId,
+            full_name: "المدير العام",
+            role: "admin",
+          }]);
+
+          if (!healError) {
+            login({
+              id: data.user.id,
+              agency_id: newAgencyId,
+              name: "المدير العام",
+              role: "admin",
+              email: data.user.email,
+              subscriptionPlan: "free",
+              subscriptionExpiresAt: null,
+              agencyCreatedAt: new Date().toISOString(),
+            });
+            toast.success("تم إكمال إعداد حساب الوكالة والدخول بنجاح!");
+            navigate("/");
+            return;
+          }
+
           throw new Error("NO_PROFILE");
         }
         throw profileError;
