@@ -163,7 +163,7 @@ export default function Employees() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">
@@ -184,11 +184,19 @@ export default function Employees() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <div className="relative">
-          <Search className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search
+            className={cn(
+              "w-4 h-4 absolute top-1/2 -translate-y-1/2 text-slate-400",
+              language === "ar" ? "right-4" : "left-4",
+            )}
+          />
           <input
             type="text"
             placeholder={t("search_employee", language)}
-            className="bg-slate-100 rounded-full pr-10 pl-4 py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
+            className={cn(
+              "bg-slate-100 rounded-full py-2 w-full border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors",
+              language === "ar" ? "pr-10 pl-4" : "pl-10 pr-4",
+            )}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

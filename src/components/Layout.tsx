@@ -74,13 +74,13 @@ export default function Layout() {
   const secondaryNav = [
     { name: t("suppliers", language), href: "/suppliers", icon: Building2 },
     { name: t("expenses", language), href: "/expenses", icon: ReceiptText },
-    { name: "الموظفين والعمال", href: "/employees", icon: Users },
-    { name: "التقارير", href: "/reports", icon: FileBarChart2 },
+    { name: t("employees", language), href: "/employees", icon: Users },
+    { name: t("reports", language), href: "/reports", icon: FileBarChart2 },
     ...(user.role === "admin"
       ? [{ name: t("settings", language), href: "/settings", icon: Settings }]
       : []),
     ...(user.email === "22247071347@bosla.app"
-      ? [{ name: "إدارة النظام", href: "/admin", icon: Settings }]
+      ? [{ name: t("system_admin", language), href: "/admin", icon: Settings }]
       : []),
   ];
 
@@ -159,7 +159,7 @@ export default function Layout() {
                   language === "ar" ? "ml-3" : "mr-3",
                 )}
               />
-              المحلل المالي
+              {t("ai_analyst", language)}
             </Link>
           )}
           <button
@@ -306,10 +306,16 @@ export default function Layout() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Shield className="w-16 h-16 text-slate-300 mb-4" />
-              <h2 className="text-xl font-bold text-slate-700 mb-2">ليس لديك صلاحية للوصول</h2>
-              <p className="text-slate-500">الرجاء التواصل مع الإدارة لطلب الصلاحيات اللازمة.</p>
+              <h2 className="text-xl font-bold text-slate-700 mb-2">
+                {language === "ar" ? "ليس لديك صلاحية للوصول" : "Accès non autorisé"}
+              </h2>
+              <p className="text-slate-500">
+                {language === "ar"
+                  ? "الرجاء التواصل مع الإدارة لطلب الصلاحيات اللازمة."
+                  : "Veuillez contacter l'administration pour obtenir les autorisations nécessaires."}
+              </p>
               <Link to="/" className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                العودة للرئيسية
+                {language === "ar" ? "العودة للرئيسية" : "Retour à l'accueil"}
               </Link>
             </div>
           )}
@@ -354,7 +360,7 @@ export default function Layout() {
               isMobileMenuOpen ? "opacity-100" : "opacity-70",
             )}
           />
-          <span className="text-[10px] font-medium">المزيد</span>
+          <span className="text-[10px] font-medium">{t("more", language)}</span>
         </button>
       </nav>
 
@@ -367,7 +373,7 @@ export default function Layout() {
           />
           <div className="relative bg-white rounded-t-2xl w-full p-6 flex flex-col animate-in slide-in-from-bottom-full duration-200">
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-              <h3 className="font-bold text-lg text-slate-800">المزيد</h3>
+              <h3 className="font-bold text-lg text-slate-800">{t("more", language)}</h3>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 transition-colors"
@@ -408,7 +414,7 @@ export default function Layout() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <Sparkles className="w-5 h-5 opacity-80" />
-                  <span className="font-semibold text-[15px]">المحلل المالي</span>
+                  <span className="font-semibold text-[15px]">{t("ai_analyst", language)}</span>
                 </Link>
               )}
               <button
@@ -416,7 +422,7 @@ export default function Layout() {
                 className="flex items-center gap-4 p-4 rounded-xl bg-red-50 text-red-600 mt-2 hover:bg-red-100 transition-colors"
               >
                 <LogOut className="w-5 h-5 opacity-80" />
-                <span className="font-semibold text-[15px]">تسجيل الخروج</span>
+                <span className="font-semibold text-[15px]">{t("logout", language)}</span>
               </button>
             </div>
           </div>

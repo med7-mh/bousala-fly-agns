@@ -4,11 +4,14 @@ import { generateText } from "../lib/gemini";
 import { Bot, Send, User, Sparkles, Loader2, ArrowRight } from "lucide-react";
 
 export default function AiAnalyst() {
-  const { user, transactions, bookings, customers } = useStore();
+  const { user, transactions, bookings, customers, language } = useStore();
   const [messages, setMessages] = useState<{ role: "user" | "ai"; content: string }[]>([
     {
       role: "ai",
-      content: "مرحباً بك في قسم المحلل المالي الذكي. أنا هنا لمساعدتك في تحليل إيراداتك ومصروفاتك، وتقديم مقترحات لتحسين الأداء المالي لوكالتك. ماذا تود أن تسألني اليوم؟",
+      content:
+        language === "ar"
+          ? "مرحباً بك في قسم المحلل المالي الذكي. أنا هنا لمساعدتك في تحليل إيراداتك ومصروفاتك، وتقديم مقترحات لتحسين الأداء المالي لوكالتك. ماذا تود أن تسألني اليوم؟"
+          : "Bienvenue dans la section Analyste Financier Intelligent. Je suis là pour vous aider à analyser vos recettes, dépenses et bénéfices. Que souhaitez-vous savoir aujourd'hui ?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -79,8 +82,12 @@ ${historyStr}
             <Sparkles className="w-6 h-6 text-emerald-50" />
           </div>
           <div>
-            <h1 className="text-xl font-bold mb-1">المحلل المالي الذكي (AI)</h1>
-            <p className="text-emerald-100 text-sm">مساعدك الشخصي لتحليل أداء وكالتك</p>
+            <h1 className="text-xl font-bold mb-1">
+              {language === "ar" ? "المحلل المالي الذكي (AI)" : "Analyste Financier Intelligent (IA)"}
+            </h1>
+            <p className="text-emerald-100 text-sm">
+              {language === "ar" ? "مساعدك الشخصي لتحليل أداء وكالتك" : "Votre assistant pour l'analyse des performances"}
+            </p>
           </div>
         </div>
       </div>
@@ -118,7 +125,9 @@ ${historyStr}
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-4 rounded-tr-none shadow-sm flex items-center gap-2 text-slate-500">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm font-medium">جاري التحليل...</span>
+              <span className="text-sm font-medium">
+                {language === "ar" ? "جاري التحليل..." : "Analyse en cours..."}
+              </span>
             </div>
           </div>
         )}
@@ -132,7 +141,11 @@ ${historyStr}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="اسأل المحلل المالي عن الإيرادات، المصروفات، أو الأرباح..."
+            placeholder={
+              language === "ar"
+                ? "اسأل المحلل المالي عن الإيرادات، المصروفات، أو الأرباح..."
+                : "Posez une question sur les recettes, dépenses ou bénéfices..."
+            }
             className="w-full bg-slate-100 text-slate-800 rounded-full py-4 pr-6 pl-14 outline-none focus:ring-2 focus:ring-emerald-500 transition-all border border-transparent focus:border-emerald-300"
             disabled={isLoading}
           />

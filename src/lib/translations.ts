@@ -7,8 +7,12 @@ export const translations = {
     expenses: "المصروفات",
     suppliers: "الموردين",
     employees: "الموظفين والعمال",
+    reports: "التقارير",
     settings: "الإعدادات",
     logout: "تسجيل الخروج",
+    system_admin: "إدارة النظام",
+    ai_analyst: "المحلل المالي",
+    more: "المزيد",
 
     // Common
     search: "بحث...",
@@ -253,15 +257,19 @@ export const translations = {
     bookings_count: "حجوزات",
   },
   fr: {
-    dashboard: "Journal",
+    dashboard: "Tableau de bord",
     bookings: "Réservations",
     customers: "Clients",
     cashier: "Trésorerie",
     expenses: "Dépenses",
     suppliers: "Fournisseurs",
     employees: "Employés",
+    reports: "Rapports",
     settings: "Paramètres",
     logout: "Déconnexion",
+    system_admin: "Administration",
+    ai_analyst: "Analyste Financier",
+    more: "Plus",
 
     // Common
     search: "Rechercher...",

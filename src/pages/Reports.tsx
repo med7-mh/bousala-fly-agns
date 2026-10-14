@@ -300,22 +300,24 @@ export default function Reports() {
     >
       <div className="hidden print:block mb-8 text-center border-b pb-4">
         <h1 className="text-3xl font-bold text-slate-800">
-          التقرير الشامل للوكالة
+          {language === "ar" ? "التقرير الشامل للوكالة" : "Rapport Global de l'Agence"}
         </h1>
         <p className="text-slate-500 mt-2">
           {dateFrom || dateTo
-            ? `الفترة: ${dateFrom || "البداية"} إلى ${dateTo || "النهاية"}`
-            : `تاريخ إصدار التقرير: ${new Date().toLocaleDateString("en-GB")}`}
+            ? `${language === "ar" ? "الفترة:" : "Période :"} ${dateFrom || (language === "ar" ? "البداية" : "Début")} ${language === "ar" ? "إلى" : "à"} ${dateTo || (language === "ar" ? "النهاية" : "Fin")}`
+            : `${language === "ar" ? "تاريخ إصدار التقرير:" : "Date d'émission :"} ${new Date().toLocaleDateString(language === "ar" ? "en-GB" : "fr-FR")}`}
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">
-            التقارير والإحصائيات المتقدمة
+            {language === "ar" ? "التقارير والإحصائيات المتقدمة" : "Rapports & Statistiques"}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            تحليل مرن وشامل للأداء المالي والتشغيلي للوكالة والموظفين
+            {language === "ar"
+              ? "تحليل مرن وشامل للأداء المالي والتشغيلي للوكالة والموظفين"
+              : "Analyse globale des performances financières et opérationnelles de l'agence"}
           </p>
         </div>
         <button
@@ -323,7 +325,9 @@ export default function Reports() {
           className="flex items-center justify-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl hover:bg-slate-900 transition-colors shadow-sm"
         >
           <Download className="w-5 h-5" />
-          <span className="font-medium">تصدير التقرير PDF</span>
+          <span className="font-medium">
+            {language === "ar" ? "تصدير التقرير PDF" : "Exporter le rapport PDF"}
+          </span>
         </button>
       </div>
 
@@ -332,44 +336,44 @@ export default function Reports() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <Filter className="w-4 h-4 text-indigo-600" />
-            <span>نظام الفرز والتواريخ السريعة:</span>
+            <span>{language === "ar" ? "نظام الفرز والتواريخ السريعة:" : "Périodes rapides :"}</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setQuickDate("today")}
               className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
-              اليوم
+              {language === "ar" ? "اليوم" : "Aujourd'hui"}
             </button>
             <button
               onClick={() => setQuickDate("week")}
               className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
-              هذا الأسبوع
+              {language === "ar" ? "هذا الأسبوع" : "Cette semaine"}
             </button>
             <button
               onClick={() => setQuickDate("month")}
               className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
-              هذا الشهر
+              {language === "ar" ? "هذا الشهر" : "Ce mois"}
             </button>
             <button
               onClick={() => setQuickDate("last_month")}
               className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
-              الشهر السابق
+              {language === "ar" ? "الشهر السابق" : "Mois précédent"}
             </button>
             <button
               onClick={() => setQuickDate("year")}
               className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
-              هذا العام
+              {language === "ar" ? "هذا العام" : "Cette année"}
             </button>
             <button
               onClick={() => setQuickDate("all")}
               className="px-3 py-1 rounded-lg text-xs font-medium bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors"
             >
-              كل الأوقات
+              {language === "ar" ? "كل الأوقات" : "Tout le temps"}
             </button>
           </div>
         </div>
@@ -474,7 +478,7 @@ export default function Reports() {
           }`}
         >
           <PieChart className="w-4 h-4" />
-          <span>الملخص المالي والخزينة</span>
+          <span>{language === "ar" ? "الملخص المالي والخزينة" : "Trésorerie & Résumé"}</span>
         </button>
         <button
           onClick={() => setActiveTab("expenses")}
@@ -485,7 +489,7 @@ export default function Reports() {
           }`}
         >
           <BarChart3 className="w-4 h-4" />
-          <span>مقارنة الإيرادات والمصروفات</span>
+          <span>{language === "ar" ? "مقارنة الإيرادات والمصروفات" : "Recettes vs Dépenses"}</span>
         </button>
         <button
           onClick={() => setActiveTab("services")}
@@ -496,7 +500,7 @@ export default function Reports() {
           }`}
         >
           <Target className="w-4 h-4" />
-          <span>تحليل أداء الخدمات</span>
+          <span>{language === "ar" ? "تحليل أداء الخدمات" : "Performance des Services"}</span>
         </button>
         <button
           onClick={() => setActiveTab("staff")}
@@ -507,7 +511,7 @@ export default function Reports() {
           }`}
         >
           <Award className="w-4 h-4" />
-          <span>تقرير أداء الموظفين</span>
+          <span>{language === "ar" ? "تقرير أداء الموظفين" : "Performance du Personnel"}</span>
         </button>
       </div>
 
